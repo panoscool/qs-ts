@@ -15,14 +15,14 @@ export type ValueType =
 
 export type ParseOptions = {
 	decode?: boolean;
+	array?: ArrayParsing;
 	inferTypes?: boolean;
-	arrayParsing?: ArrayParsing;
 	types?: Record<string, ValueType>;
 };
 
 export type StringifyOptions = {
 	encode?: boolean;
-	arrayParsing?: ArrayParsing;
+	array?: ArrayParsing;
 	skipNull?: boolean;
 	skipEmptyString?: boolean;
 };

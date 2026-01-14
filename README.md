@@ -57,7 +57,7 @@ Parses a query string into an object.
 
 - `decode?: boolean` (default: `true`) - Whether to decode percent-encoded characters
 - `inferTypes?: boolean` (default: `false`) - Whether to infer types for values
-- `arrayParsing?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are represented
+- `array?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are represented
 - `types?: Record<string, ValueType>` - Explicit type casting
 
 **ArrayParsing Definition:**
@@ -93,11 +93,11 @@ parse('tags=a&tags=b');
 // { tags: ['a', 'b'] }
 
 // Comma (Preserve encoded commas)
-parse('tags=a,b%2Cc', { arrayParsing: { format: 'comma', encoded: 'preserve' } });
+parse('tags=a,b%2Cc', { array: { format: 'comma', encoded: 'preserve' } });
 // { tags: ['a', 'b,c'] }
 
 // Comma (Split encoded commas)
-parse('tags=a,b%2Cc', { arrayParsing: { format: 'comma', encoded: 'split' } });
+parse('tags=a,b%2Cc', { array: { format: 'comma', encoded: 'split' } });
 // { tags: ['a', 'b', 'c'] }
 ```
 
@@ -128,7 +128,7 @@ Serializes an object into a query string.
 #### Options
 
 - `encode?: boolean` (default: `true`) - Whether to encode special characters
-- `arrayParsing?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are serialized
+- `array?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are serialized
 - `skipNull?: boolean` (default: `false`) - Whether to skip null values
 - `skipEmptyString?: boolean` (default: `false`) - Whether to skip empty strings
 
@@ -149,7 +149,7 @@ stringify({ tags: ['a', 'b', 'c'] });
 // 'tags=a&tags=b&tags=c'
 
 // Comma
-stringify({ tags: ['a', 'b', 'c'] }, { arrayParsing: { format: 'comma', encoded: 'preserve' } });
+stringify({ tags: ['a', 'b', 'c'] }, { array: { format: 'comma', encoded: 'preserve' } });
 // 'tags=a,b,c'
 ```
 
@@ -190,11 +190,11 @@ const obj = {
   }
 };
 
-const query = stringify(obj, { arrayParsing: { format: 'repeat' } });
+const query = stringify(obj, { array: { format: 'repeat' } });
 console.log(query);
 // 'user=john&age=30&active=true&tags=developer&tags=typescript&metadata=%5Bobject%20Object%5D'
 
-const parsed = parse(query, { inferTypes: true, arrayParsing: { format: 'repeat' } });
+const parsed = parse(query, { inferTypes: true, array: { format: 'repeat' } });
 console.log(parsed);
 // { user: 'john', age: 30, active: true, tags: ['developer', 'typescript'], metadata: '[object Object]' }
 ```
@@ -204,13 +204,13 @@ console.log(parsed);
 ```typescript
 // Parse from URL with repeat format (default)
 const url2 = new URL('https://example.com/search?q=typescript&tags=web&tags=api&limit=10');
-const params2 = parse(url2.search.slice(1), { inferTypes: true, arrayParsing: { format: 'repeat' } });
+const params2 = parse(url2.search.slice(1), { inferTypes: true, array: { format: 'repeat' } });
 console.log(params2);
 // { q: 'typescript', tags: ['web', 'api'], limit: 10 }
 
 // Parse from URL with comma format
 const url3 = new URL('https://example.com/search?q=typescript&tags=web,api&limit=10');
-const params3 = parse(url3.search.slice(1), { inferTypes: true, arrayParsing: { format: 'comma', encoded: 'preserve' } });
+const params3 = parse(url3.search.slice(1), { inferTypes: true, array: { format: 'comma', encoded: 'preserve' } });
 console.log(params3);
 // { q: 'typescript', tags: ['web', 'api'], limit: 10 }
 

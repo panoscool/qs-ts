@@ -109,7 +109,7 @@ function pushValue(result: Record<string, any>, key: string, value: any): void {
 }
 
 /**
- * parse() with explicit branches per arrayParsing.
+ * parse() with explicit branches per array.
  * - repeat: uses URLSearchParams for robust splitting of pairs
  * - bracket: manual parse so we can recognize foo[]
  * - comma: manual parse + split raw tokens on comma BEFORE decoding
@@ -121,7 +121,7 @@ export function parse(
 	const {
 		decode = true,
 		inferTypes = false,
-		arrayParsing = { format: "repeat" },
+		array = { format: "repeat" },
 		types,
 	} = options;
 
@@ -144,17 +144,17 @@ export function parse(
 	const cleaned = query.trim().replace(/^[?#&]/, "");
 	if (!cleaned) return result;
 
-	// Validate arrayParsing
-	if (!ARRAY_FORMATS.includes(arrayParsing.format)) {
+	// Validate array
+	if (!ARRAY_FORMATS.includes(array.format)) {
 		throw new TypeError(
-			`Invalid arrayParsing: ${arrayParsing.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
+			`Invalid array: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
 		);
 	}
 
 	// -----------------------
 	// Branch: repeat (default)
 	// -----------------------
-	if (arrayParsing.format === "repeat") {
+	if (array.format === "repeat") {
 		for (const part of cleaned.split("&")) {
 			if (!part) continue;
 
@@ -196,8 +196,8 @@ export function parse(
 	// Branch: comma
 	// -----------------------
 	// Note: split commas BEFORE decoding so "%2C" stays a literal comma and is not split.
-	if (arrayParsing.format === "comma") {
-		const splitEncoded = arrayParsing.encoded === "split";
+	if (array.format === "comma") {
+		const splitEncoded = array.encoded === "split";
 
 		for (const part of cleaned.split("&")) {
 			if (!part) continue;

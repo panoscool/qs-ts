@@ -96,7 +96,7 @@ describe("stringify", () => {
 			expect(
 				stringify(
 					{ a: ["x", "y"] },
-					{ arrayParsing: { format: "comma", encoded: "preserve" } },
+					{ array: { format: "comma", encoded: "preserve" } },
 				),
 			).toBe("a=x,y");
 		});
@@ -105,7 +105,7 @@ describe("stringify", () => {
 			expect(
 				stringify(
 					{ a: ["a b", "c&d"] },
-					{ arrayParsing: { format: "comma", encoded: "preserve" } },
+					{ array: { format: "comma", encoded: "preserve" } },
 				),
 			).toBe("a=a%20b,c%26d");
 		});
@@ -114,7 +114,7 @@ describe("stringify", () => {
 			expect(
 				stringify(
 					{ a: ["x", undefined, "y"] },
-					{ arrayParsing: { format: "comma", encoded: "preserve" } },
+					{ array: { format: "comma", encoded: "preserve" } },
 				),
 			).toBe("a=x,y");
 		});
@@ -124,7 +124,7 @@ describe("stringify", () => {
 				stringify(
 					{ a: ["x", null, "y"] },
 					{
-						arrayParsing: { format: "comma", encoded: "preserve" },
+						array: { format: "comma", encoded: "preserve" },
 						skipNull: true,
 					},
 				),
@@ -136,7 +136,7 @@ describe("stringify", () => {
 				stringify(
 					{ a: ["x", "", "y"] },
 					{
-						arrayParsing: { format: "comma", encoded: "preserve" },
+						array: { format: "comma", encoded: "preserve" },
 						skipEmptyString: true,
 					},
 				),
@@ -148,12 +148,30 @@ describe("stringify", () => {
 				stringify(
 					{ a: [null, undefined, ""] },
 					{
-						arrayParsing: { format: "comma", encoded: "preserve" },
+						array: { format: "comma", encoded: "preserve" },
 						skipNull: true,
 						skipEmptyString: true,
 					},
 				),
 			).toBe("");
+		});
+
+		test("comma arrays with encoded: split stringify as key=x,y", () => {
+			expect(
+				stringify(
+					{ a: ["x", "y"] },
+					{ array: { format: "comma", encoded: "split" } },
+				),
+			).toBe("a=x,y");
+		});
+
+		test("comma arrays with encoded: split encode items individually", () => {
+			expect(
+				stringify(
+					{ a: ["a b", "c&d"] },
+					{ array: { format: "comma", encoded: "split" } },
+				),
+			).toBe("a=a%20b,c%26d");
 		});
 	});
 
@@ -163,10 +181,7 @@ describe("stringify", () => {
 
 	test("handles array of objects", () => {
 		expect(
-			stringify(
-				{ a: [{ b: 1 }, { c: 2 }] },
-				{ arrayParsing: { format: "repeat" } },
-			),
+			stringify({ a: [{ b: 1 }, { c: 2 }] }, { array: { format: "repeat" } }),
 		).toBe("a=%5Bobject%20Object%5D&a=%5Bobject%20Object%5D");
 	});
 

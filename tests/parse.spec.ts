@@ -55,11 +55,11 @@ describe("parse", () => {
 		});
 	});
 
-	describe("arrayParsing: comma", () => {
+	describe("array: comma", () => {
 		test("comma splits into array (preserve)", () => {
 			expect(
 				parse("foo=a,b", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 				}),
 			).toEqual({
 				foo: ["a", "b"],
@@ -69,7 +69,7 @@ describe("parse", () => {
 		test("comma splits into array (split)", () => {
 			expect(
 				parse("foo=a,b", {
-					arrayParsing: { format: "comma", encoded: "split" },
+					array: { format: "comma", encoded: "split" },
 				}),
 			).toEqual({
 				foo: ["a", "b"],
@@ -79,7 +79,7 @@ describe("parse", () => {
 		test("comma trims whitespace around segments", () => {
 			expect(
 				parse("foo=a, b ,c", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 				}),
 			).toEqual({
 				foo: ["a", "b", "c"],
@@ -89,7 +89,7 @@ describe("parse", () => {
 		test("comma drops empty segments", () => {
 			expect(
 				parse("foo=a,,b,", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 				}),
 			).toEqual({
 				foo: ["a", "b"],
@@ -100,7 +100,7 @@ describe("parse", () => {
 			// foo=a%2Cb means literal "a,b" not an array
 			expect(
 				parse("foo=a%2Cb", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 				}),
 			).toEqual({
 				foo: "a,b",
@@ -111,7 +111,7 @@ describe("parse", () => {
 			// foo=a%2Cb means ["a", "b"]
 			expect(
 				parse("foo=a%2Cb", {
-					arrayParsing: { format: "comma", encoded: "split" },
+					array: { format: "comma", encoded: "split" },
 				}),
 			).toEqual({
 				foo: ["a", "b"],
@@ -121,7 +121,7 @@ describe("parse", () => {
 		test("comma splits encoded comma (%2c) case insensitive when encoded: split", () => {
 			expect(
 				parse("foo=a%2cb", {
-					arrayParsing: { format: "comma", encoded: "split" },
+					array: { format: "comma", encoded: "split" },
 				}),
 			).toEqual({
 				foo: ["a", "b"],
@@ -131,7 +131,7 @@ describe("parse", () => {
 		test("comma + repeated keys flattens", () => {
 			expect(
 				parse("foo=a,b&foo=c", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 				}),
 			).toEqual({
 				foo: ["a", "b", "c"],
@@ -141,7 +141,7 @@ describe("parse", () => {
 		test("comma + repeated comma values flattens", () => {
 			expect(
 				parse("foo=a,b&foo=c,d", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 				}),
 			).toEqual({
 				foo: ["a", "b", "c", "d"],
@@ -151,7 +151,7 @@ describe("parse", () => {
 		test("comma single token remains scalar unless types enforces array", () => {
 			expect(
 				parse("foo=a", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 				}),
 			).toEqual({ foo: "a" });
 		});
@@ -201,7 +201,7 @@ describe("parse", () => {
 		test("types: number[] works with comma arrays", () => {
 			expect(
 				parse("ids=1,2,3", {
-					arrayParsing: { format: "comma", encoded: "preserve" },
+					array: { format: "comma", encoded: "preserve" },
 					types: { ids: "number[]" },
 				}),
 			).toEqual({ ids: [1, 2, 3] });
@@ -226,9 +226,9 @@ describe("parse", () => {
 			});
 		});
 
-		test("throws on invalid arrayParsing", () => {
+		test("throws on invalid array", () => {
 			expect(() =>
-				parse("a=1", { arrayParsing: { format: "invalid" as any } }),
+				parse("a=1", { array: { format: "invalid" as any } }),
 			).toThrow(TypeError);
 		});
 	});

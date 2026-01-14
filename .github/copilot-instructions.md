@@ -30,6 +30,6 @@ This is a TypeScript library for parsing and stringifying URL query strings, sim
 
 ## Examples
 - Parse with type inference: `parse("a=1&b=true&c=null")` → `{a: 1, b: true, c: null}`
-- Stringify arrays (repeat): `stringify({tags: ['a', 'b']}, {arrayParsing: {format: 'repeat'}})` → `tags=a&tags=b`
-- Stringify arrays (comma): `stringify({tags: ['a', 'b']}, {arrayParsing: {format: 'comma', encoded: 'preserve'}})` → `tags=a,b`
+- Stringify arrays (repeat): `stringify({tags: ['a', 'b']}, {array: {format: 'repeat'}})` → `tags=a&tags=b`
+- Stringify arrays (comma): `stringify({tags: ['a', 'b']}, {array: {format: 'comma', encoded: 'preserve'}})` → `tags=a,b`
 - Skip nulls: `stringify({a: 1, b: null}, {skipNull: true})` → `a=1`</content>

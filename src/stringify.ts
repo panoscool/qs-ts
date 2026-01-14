@@ -36,7 +36,7 @@ export function stringify(
 
 	const {
 		encode = true,
-		arrayParsing = { format: "repeat" },
+		array = { format: "repeat" },
 		skipNull = false,
 		skipEmptyString = false,
 	} = options;
@@ -62,7 +62,7 @@ export function stringify(
 		if (Array.isArray(value)) {
 			const items = normalizeArrayItems(value);
 
-			if (arrayParsing.format === "repeat") {
+			if (array.format === "repeat") {
 				// key=a&key=b
 				for (const item of items) {
 					if (shouldSkipScalar(item, skipNull, skipEmptyString)) continue;
@@ -79,7 +79,7 @@ export function stringify(
 				continue;
 			}
 
-			if (arrayParsing.format === "comma") {
+			if (array.format === "comma") {
 				// key=a,b
 				const encodedItems: string[] = [];
 

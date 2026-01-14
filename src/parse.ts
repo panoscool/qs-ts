@@ -1,42 +1,70 @@
-import { splitOnFirst, safeDecodeURIComponent } from "./core.js";
-import type { ParseOptions, TypeName } from "./types.js";
+import { safeDecodeURIComponent } from "./core.js";
+import type { ArrayFormat, ParseOptions, TypeName } from "./types.js";
 
-function maybeDecode(text: string, options: ParseOptions): string {
-    return options.decode === false ? text : safeDecodeURIComponent(text);
+/**
+ * Decode helper that respects options.decode.
+ * Also handles "+" => " " via safeDecodeURIComponent.
+ */
+function decodeText(text: string, decode: boolean): string {
+    return decode ? safeDecodeURIComponent(text) : text;
 }
 
-function parseScalarValue(value: string, options: ParseOptions, key: string): any {
-    // 0) explicit types
-    const typeDef = options.types?.[key];
-    if (typeDef) {
-        const isArrayType = typeDef.endsWith("[]");
-        const baseType = (isArrayType ? typeDef.slice(0, -2) : typeDef) as Exclude<TypeName, "string[]" | "number[]">;
+function isArrayType(t: TypeName): t is "string[]" | "number[]" {
+    return t === "string[]" || t === "number[]";
+}
 
-        if (baseType === "number") {
-            const n = Number(value);
-            return value.trim() !== "" && Number.isFinite(n) ? n : value;
+function castScalarByType(raw: string, type: Exclude<TypeName, "string[]" | "number[]">): string | number | boolean {
+    switch (type) {
+        case "string":
+            return raw;
+
+        case "number": {
+            const n = Number(raw);
+            return raw.trim() !== "" && Number.isFinite(n) ? n : raw;
         }
 
-        if (baseType === "boolean") {
-            if (value === "true") return true;
-            if (value === "false") return false;
-            return value;
-        }
+        case "boolean":
+            if (raw === "true") return true;
+            if (raw === "false") return false;
+            return raw;
 
-        return value; // string
+        default:
+            return raw;
+    }
+}
+
+/**
+ * If the key has an explicit type, cast accordingly.
+ * If inferTypes is enabled, infer (boolean/number/null) only for untyped keys.
+ */
+function castValue(raw: string, key: string, types: ParseOptions["types"], inferTypes: boolean): any {
+    const t = types?.[key];
+
+    if (t) {
+        // For arrays, we cast elements elsewhere; this only casts a scalar token.
+        const base: Exclude<TypeName, "string[]" | "number[]"> = isArrayType(t)
+            ? (t.slice(0, -2) as any)
+            : (t as any);
+
+        return castScalarByType(raw, base);
     }
 
-    // 1) inferTypes (optional)
-    if (options.inferTypes) {
-        if (value === "true") return true;
-        if (value === "false") return false;
-        if (value === "null") return null;
+    if (inferTypes) {
+        if (raw === "true") return true;
+        if (raw === "false") return false;
+        if (raw === "null") return null;
 
-        const n = Number(value);
-        if (value.trim() !== "" && Number.isFinite(n)) return n;
+        const n = Number(raw);
+        if (raw.trim() !== "" && Number.isFinite(n)) return n;
     }
 
-    return value;
+    return raw;
+}
+
+function ensureArrayIfTyped(value: any, key: string, types: ParseOptions["types"]): any {
+    const t = types?.[key];
+    if (!t || !isArrayType(t)) return value;
+    return Array.isArray(value) ? value : [value];
 }
 
 function splitCommaRaw(raw: string): string[] {
@@ -47,12 +75,47 @@ function splitCommaRaw(raw: string): string[] {
         .filter((s) => s.length > 0);
 }
 
+/**
+ * Accumulate into result:
+ * - first assignment => scalar
+ * - repeated => array
+ */
+function pushValue(result: Record<string, any>, key: string, value: any): void {
+    const existing = result[key];
+
+    if (existing === undefined) {
+        result[key] = value;
+        return;
+    }
+
+    if (Array.isArray(existing)) {
+        existing.push(value);
+        return;
+    }
+
+    result[key] = [existing, value];
+}
+
+/**
+ * Normalize bracket keys: foo[] -> foo (only in bracket format)
+ */
+function normalizeBracketKey(key: string): string {
+    return key.endsWith("[]") ? key.slice(0, -2) : key;
+}
+
+/**
+ * parse() with explicit branches per arrayFormat.
+ * - repeat: uses URLSearchParams for robust splitting of pairs
+ * - bracket: manual parse so we can recognize foo[]
+ * - comma: manual parse + split raw tokens on comma BEFORE decoding
+ */
 export function parse(query: string, options: ParseOptions = {}): Record<string, any> {
-    const opts: Required<Pick<ParseOptions, "decode" | "arrayFormat">> & ParseOptions = {
-        decode: true,
-        arrayFormat: "repeat",
-        ...options,
-    };
+    const {
+        decode = true,
+        inferTypes = false,
+        arrayFormat = "repeat",
+        types,
+    } = options;
 
     const result: Record<string, any> = Object.create(null);
 
@@ -61,86 +124,174 @@ export function parse(query: string, options: ParseOptions = {}): Record<string,
     const cleaned = query.trim().replace(/^[?#&]/, "");
     if (!cleaned) return result;
 
-    for (const param of cleaned.split("&")) {
-        if (!param) continue;
+    // -----------------------
+    // Branch: repeat (default)
+    // -----------------------
+    if (arrayFormat === "repeat") {
+        // URLSearchParams handles splitting pairs and repeated keys.
+        // But we still apply our own decoding/casting rules to match options.
+        const usp = new URLSearchParams(cleaned);
 
-        let [rawKey, rawValue] = splitOnFirst(param, "=");
+        // IMPORTANT: URLSearchParams already decodes, and also converts '+' to space in many environments.
+        // We want decode=false to preserve raw; USP cannot do that.
+        // So for decode=false we must not use USP.
+        if (!decode) {
+            // Fall back to manual parsing for decode=false.
+            // (same behavior as bracket/repeat manual parsing)
+            for (const part of cleaned.split("&")) {
+                if (!part) continue;
 
-        // decode key once
-        const key = maybeDecode(rawKey, opts);
+                const eq = part.indexOf("=");
+                const rawKey = eq === -1 ? part : part.slice(0, eq);
+                const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
 
-        // value missing => null (matches your current behavior)
-        if (rawValue === undefined) {
-            // bracket normalization still applies to key
-            const finalKey = opts.arrayFormat === "bracket" && key.endsWith("[]") ? key.slice(0, -2) : key;
+                const key = rawKey; // no decode
+                if (rawVal === undefined) {
+                    pushValue(result, key, null);
+                    continue;
+                }
 
-            if (result[finalKey] === undefined) result[finalKey] = null;
-            else if (Array.isArray(result[finalKey])) result[finalKey].push(null);
-            else result[finalKey] = [result[finalKey], null];
-
-            continue;
-        }
-
-        // bracket normalization
-        const normalizedKey =
-            opts.arrayFormat === "bracket" && key.endsWith("[]") ? key.slice(0, -2) : key;
-
-        // IMPORTANT: for comma format, split BEFORE decoding
-        const rawParts =
-            opts.arrayFormat === "comma" ? splitCommaRaw(rawValue) : [rawValue];
-
-        // decode each part
-        const decodedParts = rawParts.map((p) => maybeDecode(p, opts));
-
-        // accumulate
-        const incoming: any = opts.arrayFormat === "comma" ? decodedParts : decodedParts[0];
-
-        if (result[normalizedKey] === undefined) {
-            result[normalizedKey] = incoming;
-        } else if (Array.isArray(result[normalizedKey])) {
-            result[normalizedKey].push(incoming);
+                const val = rawVal; // no decode
+                pushValue(result, key, val);
+            }
         } else {
-            result[normalizedKey] = [result[normalizedKey], incoming];
+            // decode=true path: let USP decode, then we cast below
+            // We also need to distinguish "a" vs "a=":
+            // USP treats "a" as ("a",""), which would not match our intended "null".
+            // So we must detect bare keys ourselves even in decode=true.
+            const bareKeys = new Set<string>();
+            for (const part of cleaned.split("&")) {
+                if (!part) continue;
+                if (!part.includes("=")) {
+                    // decode key if needed
+                    bareKeys.add(decodeText(part, true));
+                }
+            }
+
+            // read all keys
+            for (const [k, v] of usp.entries()) {
+                // if key was bare in the raw string, treat it as null, not empty string
+                if (bareKeys.has(k) && v === "") {
+                    pushValue(result, k, null);
+                } else {
+                    pushValue(result, k, v);
+                }
+            }
         }
+
+        // Post-process cast + enforce typed arrays
+        for (const key of Object.keys(result)) {
+            const current = result[key];
+
+            if (Array.isArray(current)) {
+                result[key] = current.map((item) => (item === null ? null : castValue(String(item), key, types, inferTypes)));
+            } else if (current !== null) {
+                result[key] = castValue(String(current), key, types, inferTypes);
+            }
+
+            result[key] = ensureArrayIfTyped(result[key], key, types);
+        }
+
+        return result;
     }
 
-    // Post-process:
-    // - flatten comma arrays when repeated keys produced nested arrays
-    // - apply type casting / inferTypes
-    // - wrap scalar to array if types says `...[]`
-    for (const key of Object.keys(result)) {
-        let val = result[key];
+    // -----------------------
+    // Branch: bracket
+    // -----------------------
+    if (arrayFormat === "bracket") {
+        for (const part of cleaned.split("&")) {
+            if (!part) continue;
 
-        // Flatten nested arrays produced by comma parsing + repeated keys
-        // Example: foo=a,b&foo=c -> accumulator makes: [ ["a","b"], ["c"] ] or [ ["a","b"], "c" ]
-        if (opts.arrayFormat === "comma") {
-            if (Array.isArray(val)) {
+            const eq = part.indexOf("=");
+            const rawKey = eq === -1 ? part : part.slice(0, eq);
+            const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
+
+            const decodedKey = decodeText(rawKey, decode);
+            const key = normalizeBracketKey(decodedKey);
+
+            if (rawVal === undefined) {
+                pushValue(result, key, null);
+                continue;
+            }
+
+            const decodedVal = decodeText(rawVal, decode);
+            pushValue(result, key, decodedVal);
+        }
+
+        // Cast + enforce typed arrays
+        for (const key of Object.keys(result)) {
+            const current = result[key];
+
+            if (Array.isArray(current)) {
+                result[key] = current.map((item) => (item === null ? null : castValue(String(item), key, types, inferTypes)));
+            } else if (current !== null) {
+                result[key] = castValue(String(current), key, types, inferTypes);
+            }
+
+            result[key] = ensureArrayIfTyped(result[key], key, types);
+        }
+
+        return result;
+    }
+
+    // -----------------------
+    // Branch: comma
+    // -----------------------
+    // Note: split commas BEFORE decoding so "%2C" stays a literal comma and is not split.
+    if (arrayFormat === "comma") {
+        for (const part of cleaned.split("&")) {
+            if (!part) continue;
+
+            const eq = part.indexOf("=");
+            const rawKey = eq === -1 ? part : part.slice(0, eq);
+            const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
+
+            const key = decodeText(rawKey, decode);
+
+            if (rawVal === undefined) {
+                pushValue(result, key, null);
+                continue;
+            }
+
+            const rawSegments = splitCommaRaw(rawVal);
+            if (rawSegments.length <= 1) {
+                // single token: keep scalar for untyped keys; typed arrays enforced later
+                const val = decodeText(rawVal, decode);
+                pushValue(result, key, val);
+            } else {
+                // multiple tokens: decode each segment
+                const decodedSegments = rawSegments.map((seg) => decodeText(seg, decode));
+                // For comma format, when we truly have multiple segments, store as array
+                pushValue(result, key, decodedSegments);
+            }
+        }
+
+        // Flatten nested arrays caused by repeated keys (foo=a,b&foo=c)
+        for (const key of Object.keys(result)) {
+            const current = result[key];
+
+            if (Array.isArray(current)) {
                 const flat: any[] = [];
-                for (const item of val) {
+                for (const item of current) {
                     if (Array.isArray(item)) flat.push(...item);
                     else flat.push(item);
                 }
-                val = flat;
-                result[key] = val;
+                result[key] = flat;
             }
-        }
 
-        val = result[key];
-
-        // Apply casting/inference
-        if (Array.isArray(val)) {
-            result[key] = val.map((item) => (item === null ? null : parseScalarValue(String(item), opts, key)));
-        } else {
-            if (val !== null) {
-                result[key] = parseScalarValue(String(val), opts, key);
+            // Cast
+            const afterFlatten = result[key];
+            if (Array.isArray(afterFlatten)) {
+                result[key] = afterFlatten.map((item) => (item === null ? null : castValue(String(item), key, types, inferTypes)));
+            } else if (afterFlatten !== null) {
+                result[key] = castValue(String(afterFlatten), key, types, inferTypes);
             }
+
+            // Enforce typed arrays
+            result[key] = ensureArrayIfTyped(result[key], key, types);
         }
 
-        // Enforce explicit array types
-        const typeDef = opts.types?.[key];
-        if (typeDef && typeDef.endsWith("[]") && !Array.isArray(result[key])) {
-            result[key] = [result[key]];
-        }
+        return result;
     }
 
     return result;

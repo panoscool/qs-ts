@@ -1,92 +1,112 @@
 import { strictUriEncode } from "./core.js";
-import type { StringifyOptions } from "./types.js";
+import type { StringifyOptions, ArrayFormat } from "./types.js";
 
-function enc(text: string, options: StringifyOptions): string {
-    return options.encode === false ? text : strictUriEncode(text);
+function encodeText(text: string, encode: boolean): string {
+    return encode ? strictUriEncode(text) : text;
 }
 
-function encValue(v: string | number | boolean, options: StringifyOptions): string {
-    return enc(String(v), options);
+function encodeValue(value: string | number | boolean, encode: boolean): string {
+    return encodeText(String(value), encode);
+}
+
+function shouldSkipScalar(value: any, skipNull: boolean, skipEmptyString: boolean): boolean {
+    if (value === undefined) return true; // always skipped
+    if (value === null) return skipNull;
+    if (value === "" && skipEmptyString) return true;
+    return false;
+}
+
+function normalizeArrayItems(items: any[]): any[] {
+    // Undefined always skipped at item-level too.
+    return items.filter((v) => v !== undefined);
 }
 
 export function stringify(object: Record<string, any>, options: StringifyOptions = {}): string {
     if (!object) return "";
 
-    const opts: Required<Pick<StringifyOptions, "encode" | "arrayFormat" | "skipNull" | "skipEmptyString">> &
-        StringifyOptions = {
-        encode: true,
-        arrayFormat: "repeat",
-        skipNull: false,
-        skipEmptyString: false,
-        ...options,
-    };
+    const {
+        encode = true,
+        arrayFormat = "repeat",
+        skipNull = false,
+        skipEmptyString = false,
+    } = options;
 
     const parts: string[] = [];
 
     for (const key of Object.keys(object)) {
         const value = object[key];
 
-        // undefined is always skipped
+        // ---- scalar: undefined/null/empty rules ----
         if (value === undefined) continue;
 
-        // null scalar
         if (value === null) {
-            if (opts.skipNull) continue;
-            // keep your current convention: "a" means null
-            parts.push(enc(key, opts));
+            if (skipNull) continue;
+            // Convention: null becomes "key" (no equals)
+            parts.push(encodeText(key, encode));
             continue;
         }
 
-        // empty string scalar
-        if (value === "" && opts.skipEmptyString) continue;
+        if (value === "" && skipEmptyString) continue;
 
-        // arrays
+        // ---- arrays ----
         if (Array.isArray(value)) {
-            const items = value.filter((v) => v !== undefined);
+            const items = normalizeArrayItems(value);
 
-            if (opts.arrayFormat === "comma") {
-                const encodedItems = items
-                    .filter((item) => !(item === null && opts.skipNull))
-                    .filter((item) => !(item === "" && opts.skipEmptyString))
-                    .map((item) => (item === null ? "" : encValue(item, opts)));
+            if (arrayFormat === "repeat") {
+                // key=a&key=b
+                for (const item of items) {
+                    if (shouldSkipScalar(item, skipNull, skipEmptyString)) continue;
 
-                // drop empty segments (avoids leading/trailing commas)
-                const cleaned = encodedItems.filter((s) => s.length > 0);
-                if (cleaned.length === 0) continue;
-
-                parts.push(`${enc(key, opts)}=${cleaned.join(",")}`);
+                    if (item === null) {
+                        // Convention: null item becomes "key"
+                        parts.push(encodeText(key, encode));
+                    } else {
+                        parts.push(`${encodeText(key, encode)}=${encodeValue(item, encode)}`);
+                    }
+                }
                 continue;
             }
 
-            if (opts.arrayFormat === "bracket") {
+            if (arrayFormat === "bracket") {
+                // key[]=a&key[]=b
                 const keyWithBrackets = `${key}[]`;
-                const sub = items
-                    .filter((item) => !(item === null && opts.skipNull))
-                    .filter((item) => !(item === "" && opts.skipEmptyString))
-                    .map((item) => {
-                        if (item === null) return enc(keyWithBrackets, opts); // "a[]"
-                        return `${enc(keyWithBrackets, opts)}=${encValue(item, opts)}`;
-                    });
 
-                parts.push(...sub);
+                for (const item of items) {
+                    if (shouldSkipScalar(item, skipNull, skipEmptyString)) continue;
+
+                    if (item === null) {
+                        // Convention: null item becomes "key[]"
+                        parts.push(encodeText(keyWithBrackets, encode));
+                    } else {
+                        parts.push(`${encodeText(keyWithBrackets, encode)}=${encodeValue(item, encode)}`);
+                    }
+                }
                 continue;
             }
 
-            // repeat (default)
-            const sub = items
-                .filter((item) => !(item === null && opts.skipNull))
-                .filter((item) => !(item === "" && opts.skipEmptyString))
-                .map((item) => {
-                    if (item === null) return enc(key, opts); // "a"
-                    return `${enc(key, opts)}=${encValue(item, opts)}`;
-                });
+            if (arrayFormat === "comma") {
+                // key=a,b
+                const encodedItems: string[] = [];
 
-            parts.push(...sub);
+                for (const item of items) {
+                    if (shouldSkipScalar(item, skipNull, skipEmptyString)) continue;
+                    if (item === null) continue; // avoid empty segments; consistent with parse dropping empties
+
+                    encodedItems.push(encodeValue(item, encode));
+                }
+
+                if (encodedItems.length === 0) continue;
+
+                parts.push(`${encodeText(key, encode)}=${encodedItems.join(",")}`);
+                continue;
+            }
+
+            // If TypeScript ever allows other values, we still keep runtime safe:
             continue;
         }
 
-        // scalar normal
-        parts.push(`${enc(key, opts)}=${encValue(value, opts)}`);
+        // ---- scalar normal ----
+        parts.push(`${encodeText(key, encode)}=${encodeValue(value, encode)}`);
     }
 
     return parts.join("&");

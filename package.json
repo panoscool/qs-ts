@@ -1,8 +1,9 @@
 {
 	"name": "qs-ts",
 	"version": "1.0.0",
-	"description": "Parse and stringify URL search params (query string).",
 	"license": "MIT",
+	"type": "module",
+	"description": "Parse and stringify URL search params (query string).",
 	"repository": "panoscool/qs-ts",
 	"funding": "https://github.com/sponsors/panoscool",
 	"author": {
@@ -10,19 +11,14 @@
 		"email": "lkullolli@gmail.com",
 		"url": "https://panoscool.com"
 	},
-	"type": "module",
 	"exports": {
-		"types": "./dist/index.d.ts",
 		"import": "./dist/index.js",
-		"require": "./dist/index.cjs"
+		"require": "./dist/index.cjs",
+		"types": "./dist/index.d.ts"
 	},
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"sideEffects": false,
-	"engines": {
-		"node": ">=18"
-	},
 	"scripts": {
 		"test": "bun test",
 		"build": "bun build.ts",

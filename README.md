@@ -5,7 +5,7 @@ A TypeScript library for parsing and stringifying URL query strings, inspired by
 ## Features
 
 - **Type Inference**: Automatically converts `"true"`/`"false"` to booleans, numeric strings to numbers, `"null"` to null
-- **Array Formats**: Support for `repeat` (key=a&key=b), `bracket` (key[]=a&key[]=b), `comma` (key=a,b)
+- **Array Formats**: Support for `repeat` (key=a&key=b) and `comma` (key=a,b) with configurable encoding
 - **Flexible Options**: Configurable encoding/decoding, null handling, array formatting
 - **TypeScript Support**: Full type definitions included
 - **Safe Parsing**: Handles malformed encodings gracefully
@@ -57,8 +57,21 @@ Parses a query string into an object.
 
 - `decode?: boolean` (default: `true`) - Whether to decode percent-encoded characters
 - `inferTypes?: boolean` (default: `false`) - Whether to infer types for values
-- `arrayFormat?: 'repeat' | 'bracket' | 'comma'` (default: `'repeat'`) - How arrays are represented
-- `types?: Record<string, 'string' | 'number' | 'boolean' | 'string[]' | 'number[]'>` - Explicit type casting
+- `arrayParsing?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are represented
+- `types?: Record<string, ValueType>` - Explicit type casting
+
+**ArrayParsing Definition:**
+```typescript
+type ArrayParsing =
+  | { format: "repeat" }
+  | { format: "comma"; encoded: "preserve" | "split" };
+```
+
+> [IMPORTANT]
+> Comma-separated arrays depend on delimiter consistency. If values may be URL-encoded or come from external sources, **repeat is safer and more predictable**.
+
+- `encoded: "preserve"` splits on literal `,` only; `%2C` is treated as data.
+- `encoded: "split"` splits on literal `,` and on `%2C`/`%2c` so results don’t depend on upstream encoding.
 
 #### Examples
 
@@ -79,12 +92,12 @@ parse('d=hello&e=001&f=12.5', { inferTypes: true });
 parse('tags=a&tags=b');
 // { tags: ['a', 'b'] }
 
-// Bracket
-parse('tags[]=a&tags[]=b', { arrayFormat: 'bracket' });
-// { tags: ['a', 'b'] }
+// Comma (Preserve encoded commas)
+parse('tags=a,b%2Cc', { arrayParsing: { format: 'comma', encoded: 'preserve' } });
+// { tags: ['a', 'b,c'] }
 
-// Comma
-parse('tags=a,b,c', { arrayFormat: 'comma' });
+// Comma (Split encoded commas)
+parse('tags=a,b%2Cc', { arrayParsing: { format: 'comma', encoded: 'split' } });
 // { tags: ['a', 'b', 'c'] }
 ```
 
@@ -115,7 +128,7 @@ Serializes an object into a query string.
 #### Options
 
 - `encode?: boolean` (default: `true`) - Whether to encode special characters
-- `arrayFormat?: 'repeat' | 'bracket' | 'comma'` (default: `'repeat'`) - How arrays are serialized
+- `arrayParsing?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are serialized
 - `skipNull?: boolean` (default: `false`) - Whether to skip null values
 - `skipEmptyString?: boolean` (default: `false`) - Whether to skip empty strings
 
@@ -135,12 +148,8 @@ stringify({ a: 1, b: 'hello', c: true });
 stringify({ tags: ['a', 'b', 'c'] });
 // 'tags=a&tags=b&tags=c'
 
-// Bracket
-stringify({ tags: ['a', 'b', 'c'] }, { arrayFormat: 'bracket' });
-// 'tags[]=a&tags[]=b&tags[]=c'
-
 // Comma
-stringify({ tags: ['a', 'b', 'c'] }, { arrayFormat: 'comma' });
+stringify({ tags: ['a', 'b', 'c'] }, { arrayParsing: { format: 'comma', encoded: 'preserve' } });
 // 'tags=a,b,c'
 ```
 
@@ -181,11 +190,11 @@ const obj = {
   }
 };
 
-const query = stringify(obj, { arrayFormat: 'bracket' });
+const query = stringify(obj, { arrayParsing: { format: 'repeat' } });
 console.log(query);
-// 'user=john&age=30&active=true&tags[]=developer&tags[]=typescript&metadata=%5Bobject%20Object%5D'
+// 'user=john&age=30&active=true&tags=developer&tags=typescript&metadata=%5Bobject%20Object%5D'
 
-const parsed = parse(query, { inferTypes: true, arrayFormat: 'bracket' });
+const parsed = parse(query, { inferTypes: true, arrayParsing: { format: 'repeat' } });
 console.log(parsed);
 // { user: 'john', age: 30, active: true, tags: ['developer', 'typescript'], metadata: '[object Object]' }
 ```
@@ -193,21 +202,15 @@ console.log(parsed);
 ### URL Integration
 
 ```typescript
-// Parse from URL with bracket format
-const url1 = new URL('https://example.com/search?q=typescript&tags[]=web&tags[]=api&limit=10');
-const params1 = parse(url1.search.slice(1), { inferTypes: true, arrayFormat: 'bracket' });
-console.log(params1);
-// { q: 'typescript', tags: ['web', 'api'], limit: 10 }
-
 // Parse from URL with repeat format (default)
 const url2 = new URL('https://example.com/search?q=typescript&tags=web&tags=api&limit=10');
-const params2 = parse(url2.search.slice(1), { inferTypes: true, arrayFormat: 'repeat' });
+const params2 = parse(url2.search.slice(1), { inferTypes: true, arrayParsing: { format: 'repeat' } });
 console.log(params2);
 // { q: 'typescript', tags: ['web', 'api'], limit: 10 }
 
 // Parse from URL with comma format
 const url3 = new URL('https://example.com/search?q=typescript&tags=web,api&limit=10');
-const params3 = parse(url3.search.slice(1), { inferTypes: true, arrayFormat: 'comma' });
+const params3 = parse(url3.search.slice(1), { inferTypes: true, arrayParsing: { format: 'comma', encoded: 'preserve' } });
 console.log(params3);
 // { q: 'typescript', tags: ['web', 'api'], limit: 10 }
 

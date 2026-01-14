@@ -1,22 +1,28 @@
-export type ArrayFormat = "repeat" | "bracket" | "comma";
+/**
+ * 	encoded: "preserve" splits on literal , only; %2C is treated as data.
+ * 	encoded: "split" splits on literal , and on %2C/%2c so results don’t depend on upstream encoding.
+ */
+export type ArrayParsing =
+	| { format: "repeat" }
+	| { format: "comma"; encoded: "preserve" | "split" };
 
-export type TypeName =
+export type ValueType =
 	| "string"
 	| "number"
 	| "boolean"
 	| "string[]"
 	| "number[]";
 
-export interface ParseOptions {
+export type ParseOptions = {
 	decode?: boolean;
 	inferTypes?: boolean;
-	arrayFormat?: ArrayFormat;
-	types?: Record<string, TypeName>;
-}
+	arrayParsing?: ArrayParsing;
+	types?: Record<string, ValueType>;
+};
 
-export interface StringifyOptions {
+export type StringifyOptions = {
 	encode?: boolean;
-	arrayFormat?: ArrayFormat;
+	arrayParsing?: ArrayParsing;
 	skipNull?: boolean;
 	skipEmptyString?: boolean;
-}
+};

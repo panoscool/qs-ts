@@ -2,8 +2,8 @@ export * from "./core";
 export * from "./parse";
 export * from "./stringify";
 export type {
-	ArrayFormat,
+	ArrayParsing as arrayParsing,
 	ParseOptions,
 	StringifyOptions,
-	TypeName,
+	ValueType as TypeName,
 } from "./types";

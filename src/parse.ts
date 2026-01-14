@@ -1,5 +1,5 @@
 import { ARRAY_FORMATS, safeDecodeURIComponent } from "./core";
-import type { ParseOptions, TypeName } from "./types";
+import type { ParseOptions, ValueType } from "./types";
 
 /**
  * Decode helper that respects options.decode.
@@ -9,13 +9,13 @@ function decodeText(text: string, decode: boolean): string {
 	return decode ? safeDecodeURIComponent(text) : text;
 }
 
-function isArrayType(t: TypeName): t is "string[]" | "number[]" {
+function isArrayType(t: ValueType): t is "string[]" | "number[]" {
 	return t === "string[]" || t === "number[]";
 }
 
 function castScalarByType(
 	raw: string,
-	type: Exclude<TypeName, "string[]" | "number[]">,
+	type: Exclude<ValueType, "string[]" | "number[]">,
 ): string | number | boolean {
 	switch (type) {
 		case "string":
@@ -50,7 +50,7 @@ function castValue(
 
 	if (t) {
 		// For arrays, we cast elements elsewhere; this only casts a scalar token.
-		const base: Exclude<TypeName, "string[]" | "number[]"> = isArrayType(t)
+		const base: Exclude<ValueType, "string[]" | "number[]"> = isArrayType(t)
 			? (t.slice(0, -2) as any)
 			: (t as any);
 
@@ -109,14 +109,7 @@ function pushValue(result: Record<string, any>, key: string, value: any): void {
 }
 
 /**
- * Normalize bracket keys: foo[] -> foo (only in bracket format)
- */
-function normalizeBracketKey(key: string): string {
-	return key.endsWith("[]") ? key.slice(0, -2) : key;
-}
-
-/**
- * parse() with explicit branches per arrayFormat.
+ * parse() with explicit branches per arrayParsing.
  * - repeat: uses URLSearchParams for robust splitting of pairs
  * - bracket: manual parse so we can recognize foo[]
  * - comma: manual parse + split raw tokens on comma BEFORE decoding
@@ -128,7 +121,7 @@ export function parse(
 	const {
 		decode = true,
 		inferTypes = false,
-		arrayFormat = "repeat",
+		arrayParsing = { format: "repeat" },
 		types,
 	} = options;
 
@@ -151,17 +144,17 @@ export function parse(
 	const cleaned = query.trim().replace(/^[?#&]/, "");
 	if (!cleaned) return result;
 
-	// Validate arrayFormat
-	if (!ARRAY_FORMATS.includes(arrayFormat)) {
+	// Validate arrayParsing
+	if (!ARRAY_FORMATS.includes(arrayParsing.format)) {
 		throw new TypeError(
-			`Invalid arrayFormat: ${arrayFormat}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
+			`Invalid arrayParsing: ${arrayParsing.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
 		);
 	}
 
 	// -----------------------
 	// Branch: repeat (default)
 	// -----------------------
-	if (arrayFormat === "repeat") {
+	if (arrayParsing.format === "repeat") {
 		for (const part of cleaned.split("&")) {
 			if (!part) continue;
 
@@ -200,64 +193,12 @@ export function parse(
 	}
 
 	// -----------------------
-	// Branch: bracket
-	// -----------------------
-	if (arrayFormat === "bracket") {
-		const bracketKeys = new Set<string>();
-		for (const part of cleaned.split("&")) {
-			if (!part) continue;
-
-			const eq = part.indexOf("=");
-			const rawKey = eq === -1 ? part : part.slice(0, eq);
-			const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
-
-			const decodedKey = decodeText(rawKey, decode);
-			const key = normalizeBracketKey(decodedKey);
-			if (decodedKey.endsWith("[]")) {
-				bracketKeys.add(key);
-			}
-
-			if (rawVal === undefined) {
-				pushValue(result, key, null);
-				continue;
-			}
-
-			const decodedVal = decodeText(rawVal, decode);
-			pushValue(result, key, decodedVal);
-		}
-
-		// Force arrays for bracket keys
-		for (const key of bracketKeys) {
-			if (result[key] !== undefined && !Array.isArray(result[key])) {
-				result[key] = [result[key]];
-			}
-		}
-
-		// Cast + enforce typed arrays
-		for (const key of Object.keys(result)) {
-			const current = result[key];
-
-			if (Array.isArray(current)) {
-				result[key] = current.map((item) =>
-					item === null
-						? null
-						: castValue(String(item), key, types, inferTypes),
-				);
-			} else if (current !== null) {
-				result[key] = castValue(String(current), key, types, inferTypes);
-			}
-
-			result[key] = ensureArrayIfTyped(result[key], key, types);
-		}
-
-		return result;
-	}
-
-	// -----------------------
 	// Branch: comma
 	// -----------------------
 	// Note: split commas BEFORE decoding so "%2C" stays a literal comma and is not split.
-	if (arrayFormat === "comma") {
+	if (arrayParsing.format === "comma") {
+		const splitEncoded = arrayParsing.encoded === "split";
+
 		for (const part of cleaned.split("&")) {
 			if (!part) continue;
 
@@ -272,9 +213,26 @@ export function parse(
 				continue;
 			}
 
-			const rawSegments = splitCommaRaw(rawVal);
+			let rawSegments: string[];
+			if (splitEncoded) {
+				// Split on "," OR "%2C" / "%2c"
+				rawSegments = rawVal
+					.split(/,|%2[cC]/)
+					.map((s) => s.trim())
+					.filter((s) => s.length > 0);
+			} else {
+				// Split on "," only (preserve encoded commas)
+				rawSegments = splitCommaRaw(rawVal);
+			}
+
 			if (rawSegments.length <= 1) {
 				// single token: keep scalar for untyped keys; typed arrays enforced later
+				// If we split via comma and got 1 item, we still need to decode it.
+				// But wait, if logic dictates "comma", maybe even single item should be array?
+				// Previous logic: if length <= 1, keep scalar.
+				// But if we have "foo=a" and format is comma, it is interpreted as scalar "a".
+				// If we have "foo=a,b", it is ["a", "b"].
+				// This seems consistent with general qs behavior.
 				const val = decodeText(rawVal, decode);
 				pushValue(result, key, val);
 			} else {

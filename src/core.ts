@@ -1,4 +1,4 @@
-export const ARRAY_FORMATS = ["repeat", "bracket", "comma"];
+export const ARRAY_FORMATS = ["repeat", "comma"];
 
 export function splitOnFirst(
 	string: string,

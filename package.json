@@ -1,6 +1,6 @@
 {
 	"name": "qs-ts",
-	"version": "1.0.1",
+	"version": "0.0.0",
 	"license": "MIT",
 	"type": "module",
 	"description": "A TypeScript library for parsing and stringifying URL query strings.",

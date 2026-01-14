@@ -15,11 +15,7 @@ A TypeScript library for parsing and stringifying URL query strings, inspired by
 
 ```bash
 npm install qs-ts
-```
-
-or
-
-```bash
+# or
 bun add qs-ts
 ```
 

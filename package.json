@@ -2,7 +2,7 @@
 	"name": "qs-ts",
 	"version": "0.1.0",
 	"license": "MIT",
-	"description": "A TypeScript library for parsing and stringifying URL query strings.",
+	"description": "A TypeScript library to parse and stringify URL query strings.",
 	"funding": "https://github.com/sponsors/panoscool",
 	"homepage": "https://github.com/panoscool/qs-ts#readme",
 	"author": {

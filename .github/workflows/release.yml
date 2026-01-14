@@ -22,13 +22,13 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install
+      - name: Install dependencies
         run: bun install
 
-      - name: Test
+      - name: Run tests
         run: bun test
 
-      - name: Build
+      - name: Build package (ESM/CJS + types)
         run: bun run build
 
       - name: Setup Node (npm publish)
@@ -40,7 +40,7 @@ jobs:
       - name: Verify package contents
         run: npm pack --dry-run
 
-      # If your package is scoped AND public, change to:
+      # If your package is scoped AND public, change this to:
       # run: npm publish --access public
       - name: Publish to npm
         run: npm publish --access public
@@ -48,6 +48,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG_NAME" \
+            --title "$TAG_NAME" \
+            --generate-notes

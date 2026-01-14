@@ -1,21 +1,35 @@
-name: CI
+name: PR checks
 
 on:
-  push:
   pull_request:
+    types: [opened, synchronize]
 
 jobs:
-  bun:
-    name: Bun
+  build-lint:
+    name: Lint, Test, and Build checks
+    timeout-minutes: 15
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out code
+        uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v1
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 24
 
-      - run: bun install
-      - run: bun test
-      - run: bun run build
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build

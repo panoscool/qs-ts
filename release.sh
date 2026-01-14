@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-DEFAULT_BRANCH="develop"
+DEFAULT_BRANCH="main"
 VERSION_TYPE="${1:-}"
 
 if [[ ! "$VERSION_TYPE" =~ ^(patch|minor|major)$ ]]; then

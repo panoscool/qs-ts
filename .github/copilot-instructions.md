@@ -12,7 +12,7 @@ This is a TypeScript library for parsing and stringifying URL query strings, sim
   - `types.ts`: TypeScript interfaces for options and formats
 
 ## Key Patterns
-- **Array formats**: Support `repeat` (key=a&key=b), `bracket` (key[]=a&key[]=b), `comma` (key=a,b)
+- **Array formats**: Support `repeat` (key=a&key=b) and `comma` (key=a,b) with configurable encoding
 - **Type inference**: Automatically converts "true"/"false" to booleans, numeric strings to numbers, "null" to null
 - **Null handling**: `null` values become keys without equals (e.g., `key` instead of `key=`)
 - **Encoding**: Uses strict URI encoding that handles special characters like `!'()*`
@@ -30,5 +30,6 @@ This is a TypeScript library for parsing and stringifying URL query strings, sim
 
 ## Examples
 - Parse with type inference: `parse("a=1&b=true&c=null")` → `{a: 1, b: true, c: null}`
-- Stringify arrays: `stringify({tags: ['a', 'b']}, {arrayFormat: 'bracket'})` → `tags[]=a&tags[]=b`
+- Stringify arrays (repeat): `stringify({tags: ['a', 'b']}, {arrayParsing: {format: 'repeat'}})` → `tags=a&tags=b`
+- Stringify arrays (comma): `stringify({tags: ['a', 'b']}, {arrayParsing: {format: 'comma', encoded: 'preserve'}})` → `tags=a,b`
 - Skip nulls: `stringify({a: 1, b: null}, {skipNull: true})` → `a=1`</content>

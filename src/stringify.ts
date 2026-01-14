@@ -36,7 +36,7 @@ export function stringify(
 
 	const {
 		encode = true,
-		arrayFormat = "repeat",
+		arrayParsing = { format: "repeat" },
 		skipNull = false,
 		skipEmptyString = false,
 	} = options;
@@ -62,7 +62,7 @@ export function stringify(
 		if (Array.isArray(value)) {
 			const items = normalizeArrayItems(value);
 
-			if (arrayFormat === "repeat") {
+			if (arrayParsing.format === "repeat") {
 				// key=a&key=b
 				for (const item of items) {
 					if (shouldSkipScalar(item, skipNull, skipEmptyString)) continue;
@@ -79,26 +79,7 @@ export function stringify(
 				continue;
 			}
 
-			if (arrayFormat === "bracket") {
-				// key[]=a&key[]=b
-				const keyWithBrackets = `${key}[]`;
-
-				for (const item of items) {
-					if (shouldSkipScalar(item, skipNull, skipEmptyString)) continue;
-
-					if (item === null) {
-						// Convention: null item becomes "key[]"
-						parts.push(encodeText(keyWithBrackets, encode));
-					} else {
-						parts.push(
-							`${encodeText(keyWithBrackets, encode)}=${encodeValue(item, encode)}`,
-						);
-					}
-				}
-				continue;
-			}
-
-			if (arrayFormat === "comma") {
+			if (arrayParsing.format === "comma") {
 				// key=a,b
 				const encodedItems: string[] = [];
 

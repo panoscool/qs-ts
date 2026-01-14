@@ -55,74 +55,105 @@ describe("parse", () => {
 		});
 	});
 
-	describe("arrayFormat: bracket", () => {
-		test("bracket keys normalize foo[] -> foo", () => {
-			expect(parse("foo[]=a&foo[]=b", { arrayFormat: "bracket" })).toEqual({
+	describe("arrayParsing: comma", () => {
+		test("comma splits into array (preserve)", () => {
+			expect(
+				parse("foo=a,b", {
+					arrayParsing: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({
 				foo: ["a", "b"],
 			});
 		});
 
-		test("bracket single item yields array", () => {
-			expect(parse("foo[]=a", { arrayFormat: "bracket" })).toEqual({
-				foo: ["a"],
-			});
-		});
-
-		test("bracket and non-bracket keys are treated based on normalization rule", () => {
-			// With normalization, foo[]=a and foo=b both accumulate into foo
-			expect(parse("foo[]=a&foo=b", { arrayFormat: "bracket" })).toEqual({
-				foo: ["a", "b"],
-			});
-		});
-
-		test("bracket format does not handle indices", () => {
-			expect(parse("foo[0]=a&foo[1]=b", { arrayFormat: "bracket" })).toEqual({
-				"foo[0]": "a",
-				"foo[1]": "b",
-			});
-		});
-	});
-
-	describe("arrayFormat: comma", () => {
-		test("comma splits into array", () => {
-			expect(parse("foo=a,b", { arrayFormat: "comma" })).toEqual({
+		test("comma splits into array (split)", () => {
+			expect(
+				parse("foo=a,b", {
+					arrayParsing: { format: "comma", encoded: "split" },
+				}),
+			).toEqual({
 				foo: ["a", "b"],
 			});
 		});
 
 		test("comma trims whitespace around segments", () => {
-			expect(parse("foo=a, b ,c", { arrayFormat: "comma" })).toEqual({
+			expect(
+				parse("foo=a, b ,c", {
+					arrayParsing: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({
 				foo: ["a", "b", "c"],
 			});
 		});
 
 		test("comma drops empty segments", () => {
-			expect(parse("foo=a,,b,", { arrayFormat: "comma" })).toEqual({
+			expect(
+				parse("foo=a,,b,", {
+					arrayParsing: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({
 				foo: ["a", "b"],
 			});
 		});
 
-		test("comma does NOT split encoded comma (%2C)", () => {
+		test("comma preserved encoded comma (%2C) when encoded: preserve", () => {
 			// foo=a%2Cb means literal "a,b" not an array
-			expect(parse("foo=a%2Cb", { arrayFormat: "comma" })).toEqual({
+			expect(
+				parse("foo=a%2Cb", {
+					arrayParsing: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({
 				foo: "a,b",
 			});
 		});
 
+		test("comma splits encoded comma (%2C) when encoded: split", () => {
+			// foo=a%2Cb means ["a", "b"]
+			expect(
+				parse("foo=a%2Cb", {
+					arrayParsing: { format: "comma", encoded: "split" },
+				}),
+			).toEqual({
+				foo: ["a", "b"],
+			});
+		});
+
+		test("comma splits encoded comma (%2c) case insensitive when encoded: split", () => {
+			expect(
+				parse("foo=a%2cb", {
+					arrayParsing: { format: "comma", encoded: "split" },
+				}),
+			).toEqual({
+				foo: ["a", "b"],
+			});
+		});
+
 		test("comma + repeated keys flattens", () => {
-			expect(parse("foo=a,b&foo=c", { arrayFormat: "comma" })).toEqual({
+			expect(
+				parse("foo=a,b&foo=c", {
+					arrayParsing: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({
 				foo: ["a", "b", "c"],
 			});
 		});
 
 		test("comma + repeated comma values flattens", () => {
-			expect(parse("foo=a,b&foo=c,d", { arrayFormat: "comma" })).toEqual({
+			expect(
+				parse("foo=a,b&foo=c,d", {
+					arrayParsing: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({
 				foo: ["a", "b", "c", "d"],
 			});
 		});
 
 		test("comma single token remains scalar unless types enforces array", () => {
-			expect(parse("foo=a", { arrayFormat: "comma" })).toEqual({ foo: "a" });
+			expect(
+				parse("foo=a", {
+					arrayParsing: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({ foo: "a" });
 		});
 	});
 
@@ -170,7 +201,7 @@ describe("parse", () => {
 		test("types: number[] works with comma arrays", () => {
 			expect(
 				parse("ids=1,2,3", {
-					arrayFormat: "comma",
+					arrayParsing: { format: "comma", encoded: "preserve" },
 					types: { ids: "number[]" },
 				}),
 			).toEqual({ ids: [1, 2, 3] });
@@ -195,10 +226,10 @@ describe("parse", () => {
 			});
 		});
 
-		test("throws on invalid arrayFormat", () => {
-			expect(() => parse("a=1", { arrayFormat: "invalid" as any })).toThrow(
-				TypeError,
-			);
+		test("throws on invalid arrayParsing", () => {
+			expect(() =>
+				parse("a=1", { arrayParsing: { format: "invalid" as any } }),
+			).toThrow(TypeError);
 		});
 	});
 

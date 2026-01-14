@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-lint:
-    name: Lint, Test, and Build checks
+    name: Lint, Test, and Build
     timeout-minutes: 15
     runs-on: ubuntu-latest
 

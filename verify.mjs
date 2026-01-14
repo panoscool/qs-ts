@@ -99,7 +99,7 @@ try {
             import { parse, stringify } from "qs-ts";
 
             const q1 = parse("a=1&b=true", { types: { a: "number", b: "boolean" } });
-            const q2 = parse("ids=1,2,3", { arrayFormat: "comma", types: { ids: "number[]" } });
+            const q2 = parse("ids=1,2,3", { arrayParsing: { format: "comma", encoded: "preserve" }, types: { ids: "number[]" } });
 
             const s1 = stringify({ a: 1, b: "two" });
             console.log(q1, q2, s1);

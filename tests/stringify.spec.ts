@@ -91,78 +91,31 @@ describe("stringify", () => {
 		});
 	});
 
-	describe("arrays: bracket", () => {
-		test("bracket arrays stringify as key[]=x&key[]=y", () => {
-			expect(stringify({ a: ["x", "y"] }, { arrayFormat: "bracket" })).toBe(
-				"a%5B%5D=x&a%5B%5D=y",
-			);
-		});
-
-		test("bracket arrays skip undefined items", () => {
-			expect(
-				stringify({ a: ["x", undefined, "y"] }, { arrayFormat: "bracket" }),
-			).toBe("a%5B%5D=x&a%5B%5D=y");
-		});
-
-		test("bracket arrays skip null items when skipNull=true", () => {
-			expect(
-				stringify(
-					{ a: ["x", null, "y"] },
-					{ arrayFormat: "bracket", skipNull: true },
-				),
-			).toBe("a%5B%5D=x&a%5B%5D=y");
-		});
-
-		test("bracket arrays keep null items as key[] only when skipNull=false", () => {
-			expect(
-				stringify(
-					{ a: ["x", null, "y"] },
-					{ arrayFormat: "bracket", skipNull: false },
-				),
-			).toBe("a%5B%5D=x&a%5B%5D&a%5B%5D=y");
-		});
-
-		test("bracket arrays skip empty items when skipEmptyString=true", () => {
-			expect(
-				stringify(
-					{ a: ["x", "", "y"] },
-					{ arrayFormat: "bracket", skipEmptyString: true },
-				),
-			).toBe("a%5B%5D=x&a%5B%5D=y");
-		});
-
-		test("does not produce double ampersands", () => {
-			expect(
-				stringify(
-					{ a: ["x", null, "y"] },
-					{ arrayFormat: "bracket", skipNull: true },
-				),
-			).not.toContain("&&");
-			expect(
-				stringify(
-					{ a: ["x", "", "y"] },
-					{ arrayFormat: "bracket", skipEmptyString: true },
-				),
-			).not.toContain("&&");
-		});
-	});
-
 	describe("arrays: comma", () => {
 		test("comma arrays stringify as key=x,y", () => {
-			expect(stringify({ a: ["x", "y"] }, { arrayFormat: "comma" })).toBe(
-				"a=x,y",
-			);
+			expect(
+				stringify(
+					{ a: ["x", "y"] },
+					{ arrayParsing: { format: "comma", encoded: "preserve" } },
+				),
+			).toBe("a=x,y");
 		});
 
 		test("comma arrays encode items individually", () => {
-			expect(stringify({ a: ["a b", "c&d"] }, { arrayFormat: "comma" })).toBe(
-				"a=a%20b,c%26d",
-			);
+			expect(
+				stringify(
+					{ a: ["a b", "c&d"] },
+					{ arrayParsing: { format: "comma", encoded: "preserve" } },
+				),
+			).toBe("a=a%20b,c%26d");
 		});
 
 		test("comma arrays skip undefined items", () => {
 			expect(
-				stringify({ a: ["x", undefined, "y"] }, { arrayFormat: "comma" }),
+				stringify(
+					{ a: ["x", undefined, "y"] },
+					{ arrayParsing: { format: "comma", encoded: "preserve" } },
+				),
 			).toBe("a=x,y");
 		});
 
@@ -170,7 +123,10 @@ describe("stringify", () => {
 			expect(
 				stringify(
 					{ a: ["x", null, "y"] },
-					{ arrayFormat: "comma", skipNull: true },
+					{
+						arrayParsing: { format: "comma", encoded: "preserve" },
+						skipNull: true,
+					},
 				),
 			).toBe("a=x,y");
 		});
@@ -179,7 +135,10 @@ describe("stringify", () => {
 			expect(
 				stringify(
 					{ a: ["x", "", "y"] },
-					{ arrayFormat: "comma", skipEmptyString: true },
+					{
+						arrayParsing: { format: "comma", encoded: "preserve" },
+						skipEmptyString: true,
+					},
 				),
 			).toBe("a=x,y");
 		});
@@ -188,7 +147,11 @@ describe("stringify", () => {
 			expect(
 				stringify(
 					{ a: [null, undefined, ""] },
-					{ arrayFormat: "comma", skipNull: true, skipEmptyString: true },
+					{
+						arrayParsing: { format: "comma", encoded: "preserve" },
+						skipNull: true,
+						skipEmptyString: true,
+					},
 				),
 			).toBe("");
 		});
@@ -200,8 +163,11 @@ describe("stringify", () => {
 
 	test("handles array of objects", () => {
 		expect(
-			stringify({ a: [{ b: 1 }, { c: 2 }] }, { arrayFormat: "bracket" }),
-		).toBe("a%5B%5D=%5Bobject%20Object%5D&a%5B%5D=%5Bobject%20Object%5D");
+			stringify(
+				{ a: [{ b: 1 }, { c: 2 }] },
+				{ arrayParsing: { format: "repeat" } },
+			),
+		).toBe("a=%5Bobject%20Object%5D&a=%5Bobject%20Object%5D");
 	});
 
 	test("nested objects are not supported - flattened to string", () => {

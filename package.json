@@ -2,19 +2,27 @@
 	"name": "qs-ts",
 	"version": "0.1.0",
 	"license": "MIT",
-	"type": "module",
 	"description": "A TypeScript library for parsing and stringifying URL query strings.",
-	"repository": "panoscool/qs-ts",
 	"funding": "https://github.com/sponsors/panoscool",
+	"homepage": "https://github.com/panoscool/qs-ts#readme",
 	"author": {
 		"name": "Panos Kullolli",
 		"email": "lkullolli@gmail.com",
 		"url": "https://panoscool.com"
 	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/panoscool/qs-ts.git"
+	},
+	"bugs": {
+		"url": "https://github.com/panoscool/qs-ts/issues"
+	},
 	"exports": {
-		"import": "./dist/index.js",
-		"require": "./dist/index.cjs",
-		"types": "./dist/index.d.ts"
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
 	},
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",

@@ -1,20 +1,16 @@
 {
-    "compilerOptions": {
-        "target": "ESNext",
-        "lib": [
-            "ESNext"
-        ],
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "strict": true,
-        "noUncheckedIndexedAccess": true,
-        "verbatimModuleSyntax": true,
-        "isolatedModules": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "noEmit": true
-    },
-    "include": [
-        "src"
-    ]
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["ESNext"],
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"noEmit": true
+	},
+	"include": ["src"]
 }

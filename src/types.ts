@@ -2,7 +2,7 @@
  * 	encoded: "preserve" splits on literal , only; %2C is treated as data.
  * 	encoded: "split" splits on literal , and on %2C/%2c so results don’t depend on upstream encoding.
  */
-export type ArrayParsing =
+export type ArrayFormat =
 	| { format: "repeat" }
 	| { format: "comma"; encoded: "preserve" | "split" };
 
@@ -15,14 +15,14 @@ export type ValueType =
 
 export type ParseOptions = {
 	decode?: boolean;
-	array?: ArrayParsing;
+	array?: ArrayFormat;
 	inferTypes?: boolean;
 	types?: Record<string, ValueType>;
 };
 
 export type StringifyOptions = {
 	encode?: boolean;
-	array?: ArrayParsing;
+	array?: ArrayFormat;
 	skipNull?: boolean;
 	skipEmptyString?: boolean;
 };

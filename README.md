@@ -57,12 +57,12 @@ Parses a query string into an object.
 
 - `decode?: boolean` (default: `true`) - Whether to decode percent-encoded characters
 - `inferTypes?: boolean` (default: `false`) - Whether to infer types for values
-- `array?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are represented
+- `array?: ArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are represented
 - `types?: Record<string, ValueType>` - Explicit type casting
 
-**ArrayParsing Definition:**
+**ArrayFormat Definition:**
 ```typescript
-type ArrayParsing =
+type ArrayFormat =
   | { format: "repeat" }
   | { format: "comma"; encoded: "preserve" | "split" };
 ```
@@ -128,7 +128,7 @@ Serializes an object into a query string.
 #### Options
 
 - `encode?: boolean` (default: `true`) - Whether to encode special characters
-- `array?: ArrayParsing` (default: `{ format: 'repeat' }`) - How arrays are serialized
+- `array?: ArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are serialized
 - `skipNull?: boolean` (default: `false`) - Whether to skip null values
 - `skipEmptyString?: boolean` (default: `false`) - Whether to skip empty strings
 
@@ -186,7 +186,7 @@ const obj = {
   active: true,
   tags: ['developer', 'typescript'],
   metadata: {
-    created: '2023-01-01'  // This nested object will become '[object Object]'
+    created: '2025-01-01'  // This nested object will become '[object Object]'
   }
 };
 

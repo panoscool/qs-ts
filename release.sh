@@ -14,6 +14,14 @@ if ! git diff-index --quiet HEAD --; then
   exit 1
 fi
 
+echo "⚠️  You are about to release a *$VERSION_TYPE* version from '$DEFAULT_BRANCH'."
+read -r -p "Continue? [y/N] " CONFIRM
+
+if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
+  echo "❌ Release aborted."
+  exit 1
+fi
+
 echo "📍 Checking out $DEFAULT_BRANCH"
 git checkout "$DEFAULT_BRANCH"
 

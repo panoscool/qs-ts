@@ -1,4 +1,4 @@
-name: Release
+name: Publish to npm and create github release
 
 on:
   push:
@@ -10,12 +10,24 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
-      id-token: write
+      contents: write      # needed for creating GitHub Release
+      id-token: write      # required for npm Trusted Publishing (OIDC)
+
+    # Optional but recommended: require GitHub Environment protections
+    environment:
+      name: npm
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed to verify tag ancestry vs main
+
+      # ✅ Security gate: only allow tags that point to a commit on main
+      - name: Verify tag is on main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "${GITHUB_SHA}" "origin/main"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -31,21 +43,22 @@ jobs:
       - name: Build package (ESM/CJS + types)
         run: bun run build
 
+      # npm publish runs via Node/npm
       - name: Setup Node (npm publish)
         uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org/
 
+      # ✅ Ensure npm CLI is new enough for trusted publishing
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Verify package contents
         run: npm pack --dry-run
 
-      # If your package is scoped AND public, change this to:
-      # run: npm publish --access public
-      - name: Publish to npm
+      - name: Publish to npm (OIDC Trusted Publishing)
         run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         env:

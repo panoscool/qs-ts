@@ -5,7 +5,7 @@ A TypeScript library for parsing and stringifying URL query strings, inspired by
 ## Features
 
 - **Type Inference**: Flexible options to parse numbers (`parseNumber`) and booleans (`parseBoolean`)
-- **Array Formats**: Support for `repeat` (key=a&key=b) and `comma` (key=a,b) with configurable encoding
+- **Array Formats**: Support for `repeat` (key=a&key=b) and `comma` (key=a,b), plus configurable comma parsing
 - **Flexible Options**: Configurable encoding/decoding, null handling, array formatting
 - **TypeScript Support**: Full type definitions included
 - **Safe Parsing**: Handles malformed encodings gracefully
@@ -18,6 +18,9 @@ npm install qs-ts
 # or
 bun add qs-ts
 ```
+
+> 
+> 💡 Consider using the native browser API `URLSearchParams` for simple use cases.
 
 ## Usage
 
@@ -61,18 +64,19 @@ Parses a query string into an object.
   - Does NOT parse "Infinity", "NaN", or empty strings.
 - `parseBoolean?: boolean` (default: `false`) - Attempt to parse booleans.
   - Only "true" and "false" (lowercase) are converted.
-- `array?: ArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are represented
-- `types?: Record<string, ValueType>` - Explicit type casting (takes priority over global flags)
+- `array?: ParseArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are represented
+- `types?: Record<string, ValueSchema>` - Explicit type casting (takes priority over global flags)
+  - `ValueSchema` supports `"string" | "number" | "boolean" | "string[]" | "number[]"`
 
-**ArrayFormat Definition:**
+**ParseArrayFormat Definition:**
 ```typescript
-type ArrayFormat =
+type ParseArrayFormat =
   | { format: "repeat" }
   | { format: "comma"; encoded: "preserve" | "split" };
 ```
 
-> [IMPORTANT]
-> Comma-separated arrays depend on delimiter consistency. If values may be URL-encoded or come from external sources, **repeat is safer and more predictable**.
+> 
+> ⚠️ Comma-separated arrays depend on delimiter consistency. If values may be URL-encoded or come from external sources, **repeat is safer and more predictable**.
 
 - `encoded: "preserve"` splits on literal `,` only; `%2C` is treated as data.
 - `encoded: "split"` splits on literal `,` and on `%2C`/`%2c` so results don’t depend on upstream encoding.
@@ -136,9 +140,16 @@ Serializes an object into a query string.
 #### Options
 
 - `encode?: boolean` (default: `true`) - Whether to encode special characters
-- `array?: ArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are serialized
+- `array?: StringifyArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are serialized
 - `skipNull?: boolean` (default: `false`) - Whether to skip null values
 - `skipEmptyString?: boolean` (default: `false`) - Whether to skip empty strings
+
+**StringifyArrayFormat Definition:**
+```typescript
+type StringifyArrayFormat =
+  | { format: "repeat" }
+  | { format: "comma" };
+```
 
 #### Examples
 
@@ -157,7 +168,7 @@ stringify({ tags: ['a', 'b', 'c'] });
 // 'tags=a&tags=b&tags=c'
 
 // Comma
-stringify({ tags: ['a', 'b', 'c'] }, { array: { format: 'comma', encoded: 'preserve' } });
+stringify({ tags: ['a', 'b', 'c'] }, { array: { format: 'comma' } });
 // 'tags=a,b,c'
 ```
 

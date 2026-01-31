@@ -1,5 +1,5 @@
 import { ARRAY_FORMATS, safeDecodeURIComponent } from "./core";
-import type { ParseOptions, ValueType } from "./types";
+import type { ParseOptions, ValueSchema } from "./types";
 
 /**
  * Decode helper that respects options.decode.
@@ -9,13 +9,13 @@ function decodeText(text: string, decode: boolean): string {
 	return decode ? safeDecodeURIComponent(text) : text;
 }
 
-function isArrayType(t: ValueType): t is "string[]" | "number[]" {
+function isArrayType(t: ValueSchema): t is "string[]" | "number[]" {
 	return t === "string[]" || t === "number[]";
 }
 
 function castScalarByType(
 	raw: string,
-	type: Exclude<ValueType, "string[]" | "number[]">,
+	type: Exclude<ValueSchema, "string[]" | "number[]">,
 ): string | number | boolean {
 	switch (type) {
 		case "string":
@@ -55,7 +55,7 @@ function castValue(
 	const t = types?.[key];
 	if (t) {
 		// For arrays, we cast elements elsewhere; this only casts a scalar token.
-		const base: Exclude<ValueType, "string[]" | "number[]"> = isArrayType(t)
+		const base: Exclude<ValueSchema, "string[]" | "number[]"> = isArrayType(t)
 			? (t.slice(0, -2) as any)
 			: (t as any);
 

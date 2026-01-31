@@ -2,11 +2,17 @@
  * 	encoded: "preserve" splits on literal , only; %2C is treated as data.
  * 	encoded: "split" splits on literal , and on %2C/%2c so results don’t depend on upstream encoding.
  */
-export type ArrayFormat =
-	| { format: "repeat" }
-	| { format: "comma"; encoded: "preserve" | "split" };
+type CommaEncoded = "preserve" | "split";
 
-export type ValueType =
+export type ParseArrayFormat =
+	| { format: "repeat" }
+	| { format: "comma"; encoded: CommaEncoded };
+
+export type StringifyArrayFormat = Omit<ParseArrayFormat, "encoded">;
+
+export type ArrayFormat = ParseArrayFormat | StringifyArrayFormat;
+
+export type ValueSchema =
 	| "string"
 	| "number"
 	| "boolean"
@@ -15,15 +21,15 @@ export type ValueType =
 
 export type ParseOptions = {
 	decode?: boolean;
-	array?: ArrayFormat;
+	array?: ParseArrayFormat;
 	parseNumber?: boolean;
 	parseBoolean?: boolean;
-	types?: Record<string, ValueType>;
+	types?: Record<string, ValueSchema>;
 };
 
 export type StringifyOptions = {
 	encode?: boolean;
-	array?: ArrayFormat;
+	array?: StringifyArrayFormat;
 	skipNull?: boolean;
 	skipEmptyString?: boolean;
 };

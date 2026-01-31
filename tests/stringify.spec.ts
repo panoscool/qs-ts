@@ -103,29 +103,20 @@ describe("stringify", () => {
 
 	describe("arrays: comma", () => {
 		test("comma arrays stringify as key=x,y", () => {
-			expect(
-				stringify(
-					{ a: ["x", "y"] },
-					{ array: { format: "comma", encoded: "preserve" } },
-				),
-			).toBe("a=x,y");
+			expect(stringify({ a: ["x", "y"] }, { array: { format: "comma" } })).toBe(
+				"a=x,y",
+			);
 		});
 
 		test("comma arrays encode items individually", () => {
 			expect(
-				stringify(
-					{ a: ["a b", "c&d"] },
-					{ array: { format: "comma", encoded: "preserve" } },
-				),
+				stringify({ a: ["a b", "c&d"] }, { array: { format: "comma" } }),
 			).toBe("a=a%20b,c%26d");
 		});
 
 		test("comma arrays skip undefined items", () => {
 			expect(
-				stringify(
-					{ a: ["x", undefined, "y"] },
-					{ array: { format: "comma", encoded: "preserve" } },
-				),
+				stringify({ a: ["x", undefined, "y"] }, { array: { format: "comma" } }),
 			).toBe("a=x,y");
 		});
 
@@ -134,7 +125,7 @@ describe("stringify", () => {
 				stringify(
 					{ a: ["x", null, "y"] },
 					{
-						array: { format: "comma", encoded: "preserve" },
+						array: { format: "comma" },
 						skipNull: true,
 					},
 				),
@@ -146,7 +137,7 @@ describe("stringify", () => {
 				stringify(
 					{ a: ["x", "", "y"] },
 					{
-						array: { format: "comma", encoded: "preserve" },
+						array: { format: "comma" },
 						skipEmptyString: true,
 					},
 				),
@@ -158,30 +149,12 @@ describe("stringify", () => {
 				stringify(
 					{ a: [null, undefined, ""] },
 					{
-						array: { format: "comma", encoded: "preserve" },
+						array: { format: "comma" },
 						skipNull: true,
 						skipEmptyString: true,
 					},
 				),
 			).toBe("");
-		});
-
-		test("comma arrays with encoded: split stringify as key=x,y", () => {
-			expect(
-				stringify(
-					{ a: ["x", "y"] },
-					{ array: { format: "comma", encoded: "split" } },
-				),
-			).toBe("a=x,y");
-		});
-
-		test("comma arrays with encoded: split encode items individually", () => {
-			expect(
-				stringify(
-					{ a: ["a b", "c&d"] },
-					{ array: { format: "comma", encoded: "split" } },
-				),
-			).toBe("a=a%20b,c%26d");
 		});
 	});
 

@@ -14,7 +14,7 @@ describe("flow (round-trip)", () => {
 			// So yes, it should Round Trip!
 
 			const encoded = stringify(input, {
-				array: { format: "comma", encoded: "preserve" },
+				array: { format: "comma" },
 			});
 			const decoded = parse(encoded, {
 				array: { format: "comma", encoded: "preserve" },
@@ -30,7 +30,7 @@ describe("flow (round-trip)", () => {
 
 			const encoded = stringify(
 				input,
-				{ array: { format: "comma", encoded: "split" } }, // effectively 'preserve' in stringify
+				{ array: { format: "comma" } }, // effectively 'preserve' in stringify
 			);
 
 			// parse with split
@@ -46,7 +46,7 @@ describe("flow (round-trip)", () => {
 		test("round-trip with encoded: split (safe without commas in values)", () => {
 			const input = { a: ["x", "y"] };
 			const encoded = stringify(input, {
-				array: { format: "comma", encoded: "split" },
+				array: { format: "comma" },
 			});
 			const decoded = parse(encoded, {
 				array: { format: "comma", encoded: "split" },
@@ -57,7 +57,7 @@ describe("flow (round-trip)", () => {
 		test("mixed config: stringify(preserve) -> parse(split) is lossy on commas", () => {
 			const input = { a: ["x", "y,z"] };
 			const encoded = stringify(input, {
-				array: { format: "comma", encoded: "preserve" },
+				array: { format: "comma" },
 			});
 			const decoded = parse(encoded, {
 				array: { format: "comma", encoded: "split" },
@@ -69,7 +69,7 @@ describe("flow (round-trip)", () => {
 			// stringify(split) is actually same as stringify(preserve) currently: escapes commas
 			const input = { a: ["x", "y,z"] };
 			const encoded = stringify(input, {
-				array: { format: "comma", encoded: "split" },
+				array: { format: "comma" },
 			});
 			// encoded is "a=x,y%2Cz"
 

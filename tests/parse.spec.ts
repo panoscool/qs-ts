@@ -215,7 +215,7 @@ describe("parse", () => {
 
 		test("types override inferTypes for those keys", () => {
 			const opts: ParseOptions = {
-				inferTypes: true,
+				parseNumber: true,
 				types: { a: "string", b: "string", c: "number" },
 			};
 
@@ -233,33 +233,97 @@ describe("parse", () => {
 		});
 	});
 
-	describe("inferTypes option", () => {
-		test("inferTypes parses booleans, numbers, null", () => {
-			expect(
-				parse("a=true&b=false&c=123&d=12.34&e=0&f=null&g=foo", {
-					inferTypes: true,
-				}),
-			).toEqual({
-				a: true,
-				b: false,
-				c: 123,
-				d: 12.34,
-				e: 0,
-				f: null,
-				g: "foo",
+	describe("parseNumber option", () => {
+		test("parses standard numbers", () => {
+			expect(parse("a=1&b=12.34&c=-5", { parseNumber: true })).toEqual({
+				a: 1,
+				b: 12.34,
+				c: -5,
 			});
 		});
 
-		test("inferTypes does not convert empty string", () => {
-			expect(parse("a=&b=", { inferTypes: true })).toEqual({ a: "", b: "" });
+		test("parses scientific notation", () => {
+			expect(parse("a=1e3", { parseNumber: true })).toEqual({ a: 1000 });
 		});
 
-		test("inferTypes leaves non-numeric strings", () => {
-			expect(parse("a=12a", { inferTypes: true })).toEqual({ a: "12a" });
+		test("parses leading zeros (interprets as decimal per Number())", () => {
+			expect(parse("a=001", { parseNumber: true })).toEqual({ a: 1 });
 		});
 
-		test("inferTypes handles leading zeros according to Number()", () => {
-			expect(parse("a=001", { inferTypes: true })).toEqual({ a: 1 });
+		test("does not parse Infinity or NaN", () => {
+			expect(
+				parse("a=Infinity&b=NaN&c=-Infinity", { parseNumber: true }),
+			).toEqual({
+				a: "Infinity",
+				b: "NaN",
+				c: "-Infinity",
+			});
+		});
+
+		test("does not parse empty string or whitespace", () => {
+			expect(parse("b=  &a=", { parseNumber: true })).toEqual({
+				b: "  ",
+				a: "",
+			});
+		});
+
+		test("does not parse mixed content", () => {
+			expect(parse("a=12a&b=a12", { parseNumber: true })).toEqual({
+				a: "12a",
+				b: "a12",
+			});
+		});
+	});
+
+	describe("parseBoolean option", () => {
+		test("parses true/false", () => {
+			expect(parse("a=true&b=false", { parseBoolean: true })).toEqual({
+				a: true,
+				b: false,
+			});
+		});
+
+		test("does not parse mixed case or uppercase", () => {
+			expect(parse("a=TRUE&b=False&c=True", { parseBoolean: true })).toEqual({
+				a: "TRUE",
+				b: "False",
+				c: "True",
+			});
+		});
+
+		test("does not parse 1/0 as booleans", () => {
+			expect(parse("a=1&b=0", { parseBoolean: true })).toEqual({
+				a: "1",
+				b: "0",
+			});
+		});
+	});
+
+	describe("Priority Rules", () => {
+		test("types[key] wins over parseNumber", () => {
+			// Explicitly string, even though it looks like a number and parseNumber is true
+			expect(
+				parse("id=123", { types: { id: "string" }, parseNumber: true }),
+			).toEqual({ id: "123" });
+		});
+
+		test("types[key] wins over parseBoolean", () => {
+			// Explicitly string, even though it looks like a boolean and parseBoolean is true
+			expect(
+				parse("flag=true", { types: { flag: "string" }, parseBoolean: true }),
+			).toEqual({ flag: "true" });
+		});
+
+		test("parseBoolean treats 'true' as boolean, while parseNumber ignores it", () => {
+			expect(
+				parse("a=true", { parseNumber: true, parseBoolean: true }),
+			).toEqual({ a: true });
+		});
+
+		test("parseNumber treats '1' as number, parseBoolean ignores it", () => {
+			expect(parse("a=1", { parseNumber: true, parseBoolean: true })).toEqual({
+				a: 1,
+			});
 		});
 	});
 

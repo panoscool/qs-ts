@@ -65,8 +65,8 @@ Parses a query string into an object.
 - `parseBoolean?: boolean` (default: `false`) - Attempt to parse booleans.
   - Only "true" and "false" (lowercase) are converted.
 - `array?: ParseArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are represented
-- `types?: Record<string, ValueSchema>` - Explicit type casting (takes priority over global flags)
-  - `ValueSchema` supports `"string" | "number" | "boolean" | "string[]" | "number[]"`
+- `types?: Record<string, ValueType>` - Explicit type casting (takes priority over global flags)
+  - `ValueType` supports `"string" | "number" | "boolean" | "string[]" | "number[]"`
 
 **ParseArrayFormat Definition:**
 ```typescript

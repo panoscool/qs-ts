@@ -12,7 +12,7 @@ export type StringifyArrayFormat = Omit<ParseArrayFormat, "encoded">;
 
 export type ArrayFormat = ParseArrayFormat | StringifyArrayFormat;
 
-export type ValueSchema =
+export type ValueType =
 	| "string"
 	| "number"
 	| "boolean"
@@ -24,7 +24,7 @@ export type ParseOptions = {
 	array?: ParseArrayFormat;
 	parseNumber?: boolean;
 	parseBoolean?: boolean;
-	types?: Record<string, ValueSchema>;
+	types?: Record<string, ValueType>;
 };
 
 export type StringifyOptions = {

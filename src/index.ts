@@ -5,5 +5,5 @@ export type {
 	ArrayFormat,
 	ParseOptions,
 	StringifyOptions,
-	ValueSchema,
+	ValueType,
 } from "./types";

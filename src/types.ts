@@ -16,7 +16,8 @@ export type ValueType =
 export type ParseOptions = {
 	decode?: boolean;
 	array?: ArrayFormat;
-	inferTypes?: boolean;
+	parseNumber?: boolean;
+	parseBoolean?: boolean;
 	types?: Record<string, ValueType>;
 };
 

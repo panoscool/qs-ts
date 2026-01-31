@@ -54,28 +54,38 @@ describe("stringify", () => {
 		});
 	});
 
-	describe("arrays: repeat (default)", () => {
-		test("repeat arrays stringify as repeated keys", () => {
+	describe("arrays: repeat (default & explicit)", () => {
+		test("repeat (implicit): stringifies as repeated keys", () => {
 			expect(stringify({ a: ["x", "y"] })).toBe("a=x&a=y");
 		});
 
-		test("repeat arrays skip undefined items", () => {
+		test("repeat (explicit): stringifies as repeated keys", () => {
+			expect(
+				stringify({ a: ["x", "y"] }, { array: { format: "repeat" } }),
+			).toBe("a=x&a=y");
+		});
+
+		test("repeat: stringifies mixed types (numbers/booleans)", () => {
+			expect(stringify({ a: [1, true, "s"] })).toBe("a=1&a=true&a=s");
+		});
+
+		test("repeat: skips undefined", () => {
 			expect(stringify({ a: ["x", undefined, "y"] })).toBe("a=x&a=y");
 		});
 
-		test("repeat arrays skip null items when skipNull=true", () => {
+		test("repeat: skips null when skipNull=true", () => {
 			expect(stringify({ a: ["x", null, "y"] }, { skipNull: true })).toBe(
 				"a=x&a=y",
 			);
 		});
 
-		test("repeat arrays keep null items as key only when skipNull=false", () => {
+		test("repeat: keeps null as key only when skipNull=false", () => {
 			expect(stringify({ a: ["x", null, "y"] }, { skipNull: false })).toBe(
 				"a=x&a&a=y",
 			);
 		});
 
-		test("repeat arrays skip empty items when skipEmptyString=true", () => {
+		test("repeat: skips empty strings when skipEmptyString=true", () => {
 			expect(stringify({ a: ["x", "", "y"] }, { skipEmptyString: true })).toBe(
 				"a=x&a=y",
 			);

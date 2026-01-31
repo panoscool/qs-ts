@@ -38,16 +38,21 @@ function castScalarByType(
 
 /**
  * If the key has an explicit type, cast accordingly.
- * If inferTypes is enabled, infer (boolean/number/null) only for untyped keys.
+ * If global flags are enabled, cast booleans/numbers.
+ * Priority:
+ * 1. types[key] (explicit schema)
+ * 2. parseBoolean (global flag)
+ * 3. parseNumber (global flag)
  */
 function castValue(
 	raw: string,
 	key: string,
 	types: ParseOptions["types"],
-	inferTypes: boolean,
+	parseNumber: boolean,
+	parseBoolean: boolean,
 ): any {
+	// Priority 1: types[key] wins
 	const t = types?.[key];
-
 	if (t) {
 		// For arrays, we cast elements elsewhere; this only casts a scalar token.
 		const base: Exclude<ValueType, "string[]" | "number[]"> = isArrayType(t)
@@ -57,13 +62,21 @@ function castValue(
 		return castScalarByType(raw, base);
 	}
 
-	if (inferTypes) {
+	// Priority 2: global flags
+	// parseBoolean logic: only "true"/"false" (lowercase)
+	if (parseBoolean) {
 		if (raw === "true") return true;
 		if (raw === "false") return false;
-		if (raw === "null") return null;
+	}
 
+	// parseNumber logic: strict check
+	// "001" -> 1 (Number() behavior)
+	// "1e3" -> 1000 (Number() behavior)
+	// "Infinity", "NaN", "" -> no cast
+	if (parseNumber) {
+		if (raw.trim() === "") return raw;
 		const n = Number(raw);
-		if (raw.trim() !== "" && Number.isFinite(n)) return n;
+		if (Number.isFinite(n)) return n;
 	}
 
 	return raw;
@@ -120,7 +133,8 @@ export function parse(
 ): Record<string, any> {
 	const {
 		decode = true,
-		inferTypes = false,
+		parseNumber = false,
+		parseBoolean = false,
 		array = { format: "repeat" },
 		types,
 	} = options;
@@ -180,10 +194,16 @@ export function parse(
 				result[key] = current.map((item) =>
 					item === null
 						? null
-						: castValue(String(item), key, types, inferTypes),
+						: castValue(String(item), key, types, parseNumber, parseBoolean),
 				);
 			} else if (current !== null) {
-				result[key] = castValue(String(current), key, types, inferTypes);
+				result[key] = castValue(
+					String(current),
+					key,
+					types,
+					parseNumber,
+					parseBoolean,
+				);
 			}
 
 			result[key] = ensureArrayIfTyped(result[key], key, types);
@@ -264,10 +284,16 @@ export function parse(
 				result[key] = afterFlatten.map((item) =>
 					item === null
 						? null
-						: castValue(String(item), key, types, inferTypes),
+						: castValue(String(item), key, types, parseNumber, parseBoolean),
 				);
 			} else if (afterFlatten !== null) {
-				result[key] = castValue(String(afterFlatten), key, types, inferTypes);
+				result[key] = castValue(
+					String(afterFlatten),
+					key,
+					types,
+					parseNumber,
+					parseBoolean,
+				);
 			}
 
 			// Enforce typed arrays

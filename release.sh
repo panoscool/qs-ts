@@ -29,20 +29,32 @@ COMMIT_SHA="$(git rev-parse --short HEAD)"
 LATEST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 LATEST_PKG_VERSION="$(node -p "require('./package.json').version")"
 
-# Compute next version without modifying anything
-NEXT_VERSION="$(node -e "
-  const v = require('./package.json').version;
-  let semver;
-  try { semver = require('semver'); } catch (e) { semver = null; }
-  if (!semver) {
-    console.error('Missing dependency: semver (needed to preview next version).');
-    process.exit(1);
-  }
-  const next = semver.inc(v, process.argv[1]);
-  if (!next) process.exit(1);
-  process.stdout.write(next);
-" "$VERSION_TYPE")"
+# Compute next version without modifying anything (no dependencies)
+IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_PKG_VERSION"
 
+# Basic validation (expects x.y.z)
+if [[ -z "${MAJOR:-}" || -z "${MINOR:-}" || -z "${PATCH:-}" ]] || \
+   ! [[ "$MAJOR" =~ ^[0-9]+$ && "$MINOR" =~ ^[0-9]+$ && "$PATCH" =~ ^[0-9]+$ ]]; then
+  echo "❌ Unsupported version format in package.json: $LATEST_PKG_VERSION (expected x.y.z)"
+  exit 1
+fi
+
+case "$VERSION_TYPE" in
+  patch)
+    PATCH=$((PATCH + 1))
+    ;;
+  minor)
+    MINOR=$((MINOR + 1))
+    PATCH=0
+    ;;
+  major)
+    MAJOR=$((MAJOR + 1))
+    MINOR=0
+    PATCH=0
+    ;;
+esac
+
+NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
 NEXT_TAG="v$NEXT_VERSION"
 
 echo

@@ -55,6 +55,63 @@ describe("parse", () => {
 		});
 	});
 
+	describe("array: repeat", () => {
+		test("explicit repeat format: stringifies as repeated keys", () => {
+			expect(parse("a=1&a=2", { array: { format: "repeat" } })).toEqual({
+				a: ["1", "2"],
+			});
+		});
+
+		test("explicit repeat format: single key stays scalar", () => {
+			expect(parse("a=1", { array: { format: "repeat" } })).toEqual({ a: "1" });
+		});
+
+		test("repeat + parseNumber: parses repeated numbers", () => {
+			expect(
+				parse("a=1&a=2.5", {
+					array: { format: "repeat" },
+					parseNumber: true,
+				}),
+			).toEqual({ a: [1, 2.5] });
+		});
+
+		test("repeat + parseBoolean: parses repeated booleans", () => {
+			expect(
+				parse("a=true&a=false", {
+					array: { format: "repeat" },
+					parseBoolean: true,
+				}),
+			).toEqual({ a: [true, false] });
+		});
+
+		test("repeat + explicit types: string[] enforces array on single item", () => {
+			expect(
+				parse("tags=a", {
+					array: { format: "repeat" },
+					types: { tags: "string[]" },
+				}),
+			).toEqual({ tags: ["a"] });
+		});
+
+		test("repeat + explicit types: number[] parses and enforces array", () => {
+			expect(
+				parse("ids=1&ids=2", {
+					array: { format: "repeat" },
+					types: { ids: "number[]" },
+				}),
+			).toEqual({ ids: [1, 2] });
+		});
+
+		test("repeat + explicit types: number[] with single item", () => {
+			expect(
+				parse("ids=1", {
+					array: { format: "repeat" },
+					types: { ids: "number[]" },
+				}),
+			).toEqual({ ids: [1] });
+		});
+	});
+
 	describe("array: comma", () => {
 		test("comma splits into array (preserve)", () => {
 			expect(

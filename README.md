@@ -4,7 +4,7 @@ A TypeScript library for parsing and stringifying URL query strings, inspired by
 
 ## Features
 
-- **Type Inference**: Automatically converts `"true"`/`"false"` to booleans, numeric strings to numbers, `"null"` to null
+- **Type Inference**: Flexible options to parse numbers (`parseNumber`) and booleans (`parseBoolean`)
 - **Array Formats**: Support for `repeat` (key=a&key=b) and `comma` (key=a,b) with configurable encoding
 - **Flexible Options**: Configurable encoding/decoding, null handling, array formatting
 - **TypeScript Support**: Full type definitions included
@@ -28,7 +28,7 @@ import { parse } from 'qs-ts';
 
 const result = parse('a=1&b=hello&c=true');
 console.log(result);
-// { a: 1, b: 'hello', c: true }
+// { a: '1', b: 'hello', c: 'true' } -> by default everything is a string
 ```
 
 ### Basic Stringifying
@@ -56,9 +56,13 @@ Parses a query string into an object.
 #### Options
 
 - `decode?: boolean` (default: `true`) - Whether to decode percent-encoded characters
-- `inferTypes?: boolean` (default: `false`) - Whether to infer types for values
+- `parseNumber?: boolean` (default: `false`) - Attempt to parse numbers ("1", "12.5", "1e3" -> number).
+  - Uses `Number(val)`.
+  - Does NOT parse "Infinity", "NaN", or empty strings.
+- `parseBoolean?: boolean` (default: `false`) - Attempt to parse booleans.
+  - Only "true" and "false" (lowercase) are converted.
 - `array?: ArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are represented
-- `types?: Record<string, ValueType>` - Explicit type casting
+- `types?: Record<string, ValueType>` - Explicit type casting (takes priority over global flags)
 
 **ArrayFormat Definition:**
 ```typescript
@@ -75,13 +79,13 @@ type ArrayFormat =
 
 #### Examples
 
-##### Type Inference
+##### Parsing Numbers and Booleans
 
 ```typescript
-parse('a=1&b=true&c=null', { inferTypes: true });
-// { a: 1, b: true, c: null }
+parse('a=1&b=true&c=null', { parseNumber: true, parseBoolean: true });
+// { a: 1, b: true, c: 'null' } (null literal not parsed unless typed)
 
-parse('d=hello&e=001&f=12.5', { inferTypes: true });
+parse('d=hello&e=001&f=12.5', { parseNumber: true });
 // { d: 'hello', e: 1, f: 12.5 }
 ```
 
@@ -103,12 +107,16 @@ parse('tags=a,b%2Cc', { array: { format: 'comma', encoded: 'split' } });
 
 ##### Explicit Types
 
+Explicit types take priority over global `parseNumber`/`parseBoolean` flags.
+
 ```typescript
 parse('count=5&flags=on&items=a&items=b', {
-  inferTypes: true,
+  parseNumber: true,
+  parseBoolean: true,
   types: { count: 'string', flags: 'boolean', items: 'string[]' }
 });
 // { count: '5', flags: true, items: ['a', 'b'] }
+// count stays string because of explicit type, despite parseNumber: true
 ```
 
 ##### Decoding Control
@@ -194,7 +202,12 @@ const query = stringify(obj, { array: { format: 'repeat' } });
 console.log(query);
 // 'user=john&age=30&active=true&tags=developer&tags=typescript&metadata=%5Bobject%20Object%5D'
 
-const parsed = parse(query, { inferTypes: true, array: { format: 'repeat' } });
+// When parsing back, you might want numeric/boolean values restored:
+const parsed = parse(query, {
+  parseNumber: true,
+  parseBoolean: true,
+  array: { format: 'repeat' }
+});
 console.log(parsed);
 // { user: 'john', age: 30, active: true, tags: ['developer', 'typescript'], metadata: '[object Object]' }
 ```
@@ -204,13 +217,14 @@ console.log(parsed);
 ```typescript
 // Parse from URL with repeat format (default)
 const url2 = new URL('https://example.com/search?q=typescript&tags=web&tags=api&limit=10');
-const params2 = parse(url2.search.slice(1), { inferTypes: true, array: { format: 'repeat' } });
+// inferTypes is gone, use specific flags if needed
+const params2 = parse(url2.search.slice(1), { parseNumber: true, array: { format: 'repeat' } });
 console.log(params2);
 // { q: 'typescript', tags: ['web', 'api'], limit: 10 }
 
 // Parse from URL with comma format
 const url3 = new URL('https://example.com/search?q=typescript&tags=web,api&limit=10');
-const params3 = parse(url3.search.slice(1), { inferTypes: true, array: { format: 'comma', encoded: 'preserve' } });
+const params3 = parse(url3.search.slice(1), { parseNumber: true, array: { format: 'comma', encoded: 'preserve' } });
 console.log(params3);
 // { q: 'typescript', tags: ['web', 'api'], limit: 10 }
 

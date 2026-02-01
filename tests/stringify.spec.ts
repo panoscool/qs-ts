@@ -10,6 +10,14 @@ describe("stringify", () => {
 		expect(stringify(null as any)).toBe("");
 	});
 
+	test("returns empty string for array input", () => {
+		expect(stringify([] as any)).toBe("");
+	});
+
+	test("skips empty array values", () => {
+		expect(stringify({ a: [] })).toBe("");
+	});
+
 	test("stringifies simple scalars", () => {
 		expect(stringify({ a: "1", b: "two" })).toBe("a=1&b=two");
 		expect(stringify({ a: 1, b: true, c: false })).toBe("a=1&b=true&c=false");

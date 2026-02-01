@@ -1,6 +1,10 @@
 #!/bin/bash
 set -eu
 
+# Always run from repo root
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
 DEFAULT_BRANCH="main"
 VERSION_TYPE="${1:-}"
 

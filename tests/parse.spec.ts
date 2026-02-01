@@ -113,6 +113,14 @@ describe("parse", () => {
 	});
 
 	describe("array: comma", () => {
+		test("comma keeps key without value as null", () => {
+			expect(
+				parse("foo", {
+					array: { format: "comma", encoded: "preserve" },
+				}),
+			).toEqual({ foo: null });
+		});
+
 		test("comma splits into array (preserve)", () => {
 			expect(
 				parse("foo=a,b", {
@@ -215,6 +223,14 @@ describe("parse", () => {
 	});
 
 	describe("types option", () => {
+		test("types: unknown type falls back to raw string", () => {
+			expect(
+				parse("a=1", {
+					types: { a: "unknown" as any },
+				} as any),
+			).toEqual({ a: "1" });
+		});
+
 		test("types: number casts scalar", () => {
 			expect(
 				parse("a=1&b=12.34&c=0", {

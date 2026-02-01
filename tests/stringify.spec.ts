@@ -166,6 +166,12 @@ describe("stringify", () => {
 		});
 	});
 
+	test("unknown array format is ignored (runtime safe)", () => {
+		expect(
+			stringify({ a: ["x"] }, { array: { format: "unknown" as any } }),
+		).toBe("");
+	});
+
 	test("handles object values by converting to string", () => {
 		expect(stringify({ a: { b: 1 } })).toBe("a=%5Bobject%20Object%5D");
 	});

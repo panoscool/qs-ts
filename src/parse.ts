@@ -152,7 +152,6 @@ export function parse(
 	 *
 	 */
 	const result: Record<string, any> = Object.create(null);
-
 	if (typeof query !== "string") return result;
 
 	const cleaned = query.trim().replace(/^[?#&]/, "");
@@ -161,146 +160,143 @@ export function parse(
 	// Validate array
 	if (!ARRAY_FORMATS.includes(array.format)) {
 		throw new TypeError(
-			`Invalid array: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
+			`Invalid array format: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
 		);
 	}
 
 	// -----------------------
-	// Branch: repeat (default)
+	// Branch: format
 	// -----------------------
-	if (array.format === "repeat") {
-		for (const part of cleaned.split("&")) {
-			if (!part) continue;
+	switch (array.format) {
+		case "repeat": {
+			for (const part of cleaned.split("&")) {
+				if (!part) continue;
 
-			const eq = part.indexOf("=");
-			const rawKey = eq === -1 ? part : part.slice(0, eq);
-			const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
+				const eq = part.indexOf("=");
+				const rawKey = eq === -1 ? part : part.slice(0, eq);
+				const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
 
-			const key = decodeText(rawKey, decode);
-			if (rawVal === undefined) {
-				pushValue(result, key, null);
-				continue;
-			}
+				const key = decodeText(rawKey, decode);
+				if (rawVal === undefined) {
+					pushValue(result, key, null);
+					continue;
+				}
 
-			const val = decodeText(rawVal, decode);
-			pushValue(result, key, val);
-		}
-
-		// Post-process cast + enforce typed arrays
-		for (const key of Object.keys(result)) {
-			const current = result[key];
-
-			if (Array.isArray(current)) {
-				result[key] = current.map((item) =>
-					item === null
-						? null
-						: castValue(String(item), key, types, parseNumber, parseBoolean),
-				);
-			} else if (current !== null) {
-				result[key] = castValue(
-					String(current),
-					key,
-					types,
-					parseNumber,
-					parseBoolean,
-				);
-			}
-
-			result[key] = ensureArrayIfTyped(result[key], key, types);
-		}
-
-		return result;
-	}
-
-	// -----------------------
-	// Branch: comma
-	// -----------------------
-	// Note: split commas BEFORE decoding so "%2C" stays a literal comma and is not split.
-	if (array.format === "comma") {
-		const splitEncoded = array.encoded === "split";
-
-		for (const part of cleaned.split("&")) {
-			if (!part) continue;
-
-			const eq = part.indexOf("=");
-			const rawKey = eq === -1 ? part : part.slice(0, eq);
-			const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
-
-			const key = decodeText(rawKey, decode);
-
-			if (rawVal === undefined) {
-				pushValue(result, key, null);
-				continue;
-			}
-
-			let rawSegments: string[];
-			if (splitEncoded) {
-				// Split on "," OR "%2C" / "%2c"
-				rawSegments = rawVal
-					.split(/,|%2[cC]/)
-					.map((s) => s.trim())
-					.filter((s) => s.length > 0);
-			} else {
-				// Split on "," only (preserve encoded commas)
-				rawSegments = splitCommaRaw(rawVal);
-			}
-
-			if (rawSegments.length <= 1) {
-				// single token: keep scalar for untyped keys; typed arrays enforced later
-				// If we split via comma and got 1 item, we still need to decode it.
-				// But wait, if logic dictates "comma", maybe even single item should be array?
-				// Previous logic: if length <= 1, keep scalar.
-				// But if we have "foo=a" and format is comma, it is interpreted as scalar "a".
-				// If we have "foo=a,b", it is ["a", "b"].
-				// This seems consistent with general qs behavior.
 				const val = decodeText(rawVal, decode);
 				pushValue(result, key, val);
-			} else {
-				// multiple tokens: decode each segment
-				const decodedSegments = rawSegments.map((seg) =>
-					decodeText(seg, decode),
-				);
-				// For comma format, when we truly have multiple segments, store as array
-				pushValue(result, key, decodedSegments);
 			}
-		}
 
-		// Flatten nested arrays caused by repeated keys (foo=a,b&foo=c)
-		for (const key of Object.keys(result)) {
-			const current = result[key];
+			// Post-process cast + enforce typed arrays
+			for (const key of Object.keys(result)) {
+				const current = result[key];
 
-			if (Array.isArray(current)) {
-				const flat: unknown[] = [];
-				for (const item of current) {
-					if (Array.isArray(item)) flat.push(...item);
-					else flat.push(item);
+				if (Array.isArray(current)) {
+					result[key] = current.map((item) =>
+						item === null
+							? null
+							: castValue(String(item), key, types, parseNumber, parseBoolean),
+					);
+				} else if (current !== null) {
+					result[key] = castValue(
+						String(current),
+						key,
+						types,
+						parseNumber,
+						parseBoolean,
+					);
 				}
-				result[key] = flat;
-			}
 
-			// Cast
-			const afterFlatten = result[key];
-			if (Array.isArray(afterFlatten)) {
-				result[key] = afterFlatten.map((item) =>
-					item === null
-						? null
-						: castValue(String(item), key, types, parseNumber, parseBoolean),
-				);
-			} else if (afterFlatten !== null) {
-				result[key] = castValue(
-					String(afterFlatten),
-					key,
-					types,
-					parseNumber,
-					parseBoolean,
-				);
+				result[key] = ensureArrayIfTyped(result[key], key, types);
 			}
-
-			// Enforce typed arrays
-			result[key] = ensureArrayIfTyped(result[key], key, types);
+			break;
 		}
 
-		return result;
+		case "comma": {
+			// Note: split commas BEFORE decoding so "%2C" stays a literal comma and is not split.
+			const splitEncoded = array.encoded === "split";
+
+			for (const part of cleaned.split("&")) {
+				if (!part) continue;
+
+				const eq = part.indexOf("=");
+				const rawKey = eq === -1 ? part : part.slice(0, eq);
+				const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
+
+				const key = decodeText(rawKey, decode);
+
+				if (rawVal === undefined) {
+					pushValue(result, key, null);
+					continue;
+				}
+
+				let rawSegments: string[];
+				if (splitEncoded) {
+					// Split on "," OR "%2C" / "%2c"
+					rawSegments = rawVal
+						.split(/,|%2[cC]/)
+						.map((s) => s.trim())
+						.filter((s) => s.length > 0);
+				} else {
+					// Split on "," only (preserve encoded commas)
+					rawSegments = splitCommaRaw(rawVal);
+				}
+
+				if (rawSegments.length <= 1) {
+					// single token: keep scalar for untyped keys; typed arrays enforced later
+					// If we split via comma and got 1 item, we still need to decode it.
+					// But wait, if logic dictates "comma", maybe even single item should be array?
+					// Previous logic: if length <= 1, keep scalar.
+					// But if we have "foo=a" and format is comma, it is interpreted as scalar "a".
+					// If we have "foo=a,b", it is ["a", "b"].
+					// This seems consistent with general qs behavior.
+					const val = decodeText(rawVal, decode);
+					pushValue(result, key, val);
+				} else {
+					// multiple tokens: decode each segment
+					const decodedSegments = rawSegments.map((seg) =>
+						decodeText(seg, decode),
+					);
+					// For comma format, when we truly have multiple segments, store as array
+					pushValue(result, key, decodedSegments);
+				}
+			}
+
+			// Flatten nested arrays caused by repeated keys (foo=a,b&foo=c)
+			for (const key of Object.keys(result)) {
+				const current = result[key];
+
+				if (Array.isArray(current)) {
+					const flat: unknown[] = [];
+					for (const item of current) {
+						if (Array.isArray(item)) flat.push(...item);
+						else flat.push(item);
+					}
+					result[key] = flat;
+				}
+
+				// Cast
+				const afterFlatten = result[key];
+				if (Array.isArray(afterFlatten)) {
+					result[key] = afterFlatten.map((item) =>
+						item === null
+							? null
+							: castValue(String(item), key, types, parseNumber, parseBoolean),
+					);
+				} else if (afterFlatten !== null) {
+					result[key] = castValue(
+						String(afterFlatten),
+						key,
+						types,
+						parseNumber,
+						parseBoolean,
+					);
+				}
+
+				// Enforce typed arrays
+				result[key] = ensureArrayIfTyped(result[key], key, types);
+			}
+			break;
+		}
 	}
 
 	return result;

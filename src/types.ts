@@ -10,8 +10,6 @@ export type ParseArrayFormat =
 
 export type StringifyArrayFormat = Omit<ParseArrayFormat, "encoded">;
 
-export type ArrayFormat = ParseArrayFormat | StringifyArrayFormat;
-
 export type ValueType =
 	| "string"
 	| "number"

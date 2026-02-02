@@ -18,7 +18,7 @@ const esm = await build({
 	target: "node",
 	format: "esm",
 	naming: "[name].js",
-	minify: true
+	minify: true,
 });
 assertBuild(esm, "ESM build");
 
@@ -29,7 +29,7 @@ const cjs = await build({
 	target: "node",
 	format: "cjs",
 	naming: "[name].cjs",
-	minify: true
+	minify: true,
 });
 assertBuild(cjs, "CJS build");
 

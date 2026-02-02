@@ -76,7 +76,7 @@ type ParseArrayFormat =
 ```
 
 > 
-> ⚠️ Comma-separated arrays depend on delimiter consistency. If values may be URL-encoded or come from external sources, **repeat is safer and more predictable**.
+> ⚠️ Comma separated arrays depend on delimiter consistency. If values may be URL encoded or come from external sources, **repeat is safer and more predictable**.
 
 - `encoded: "preserve"` splits on literal `,` only; `%2C` is treated as data.
 - `encoded: "split"` splits on literal `,` and on `%2C`/`%2c` so results don’t depend on upstream encoding.

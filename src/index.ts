@@ -1,9 +1,8 @@
-export * from "./core";
 export * from "./parse";
 export * from "./stringify";
-export type {
-	ArrayFormat,
-	ParseOptions,
-	StringifyOptions,
-	ValueType,
-} from "./types";
+export type * from "./types";
+
+import { parse } from "./parse";
+import { stringify } from "./stringify";
+
+export default { parse, stringify };

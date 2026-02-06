@@ -13,7 +13,7 @@ if [[ ! "$VERSION_TYPE" =~ ^(patch|minor|major)$ ]]; then
   exit 1
 fi
 
-if ! git diff-index --quiet HEAD --; then
+if [[ -n "$(git status --porcelain)" ]]; then
   echo "❌ Error: You have uncommitted changes. Commit or stash them first."
   exit 1
 fi

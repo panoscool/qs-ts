@@ -1,5 +1,10 @@
-import { ARRAY_FORMATS, safeDecodeURIComponent } from "./core";
-import type { ParseOptions, ValueType } from "./types";
+import { ARRAY_FORMATS, safeDecodeURIComponent, TYPE_ERRORS } from "./core";
+import type {
+	ParseArrayFormat,
+	ParseOptions,
+	ValueType,
+	ValueTypeError,
+} from "./types";
 
 /**
  * Decode helper that respects options.decode.
@@ -11,6 +16,18 @@ function decodeText(text: string, decode: boolean): string {
 
 function isArrayType(t: ValueType): t is "string[]" | "number[]" {
 	return t === "string[]" || t === "number[]";
+}
+
+function isScalarType(
+	t: ValueType,
+): t is Exclude<ValueType, "string[]" | "number[]"> {
+	return t === "string" || t === "number" || t === "boolean";
+}
+
+function toScalarType(
+	t: ValueType,
+): Exclude<ValueType, "string[]" | "number[]"> {
+	return isArrayType(t) ? (t.slice(0, -2) as any) : t;
 }
 
 function castScalarByType(
@@ -37,36 +54,20 @@ function castScalarByType(
 }
 
 /**
- * If the key has an explicit type, cast accordingly.
- * If global flags are enabled, cast booleans/numbers.
- * Priority:
- * 1. types[key] (explicit schema)
- * 2. parseBoolean (global flag)
- * 3. parseNumber (global flag)
+ * Cast an untyped value using global flags only.
+ * Explicit `types` are handled in finalizeKey().
  */
 function castValue(
-	raw: string,
-	key: string,
-	types: ParseOptions["types"],
+	rawInput: unknown,
 	parseNumber: boolean,
 	parseBoolean: boolean,
 ): any {
-	// Priority 1: types[key] wins
-	const t = types?.[key];
-	if (t) {
-		// For arrays, we cast elements elsewhere; this only casts a scalar token.
-		const base: Exclude<ValueType, "string[]" | "number[]"> = isArrayType(t)
-			? (t.slice(0, -2) as any)
-			: (t as any);
+	const raw = String(rawInput);
 
-		return castScalarByType(raw, base);
-	}
-
-	// Priority 2: global flags
 	// parseBoolean logic: only "true"/"false" (lowercase)
 	if (parseBoolean) {
-		if (raw === "true") return true;
-		if (raw === "false") return false;
+		const boolValue = castScalarByType(raw, "boolean");
+		if (typeof boolValue === "boolean") return boolValue;
 	}
 
 	// parseNumber logic: strict check
@@ -74,22 +75,91 @@ function castValue(
 	// "1e3" -> 1000 (Number() behavior)
 	// "Infinity", "NaN", "" -> no cast
 	if (parseNumber) {
-		if (raw.trim() === "") return raw;
-		const n = Number(raw);
-		if (Number.isFinite(n)) return n;
+		const numValue = castScalarByType(raw, "number");
+		if (typeof numValue === "number") return numValue;
 	}
 
 	return raw;
 }
 
-function ensureArrayIfTyped(
-	value: any,
+function castExplicitTypedValue(
+	value: unknown,
+	key: string,
+	explicitType: ValueType,
+	onTypeError: ValueTypeError,
+): { accepted: boolean; value?: unknown } {
+	const scalarType = toScalarType(explicitType);
+	let casted: unknown;
+	let error: string | undefined;
+
+	if (value === null) {
+		error = `Expected a value for key "${key}" of type ${explicitType}`;
+	} else {
+		casted = castScalarByType(String(value), scalarType);
+		if (scalarType === "number" && typeof casted !== "number") {
+			error = `Expected finite numbers for key "${key}", got "${String(value)}"`;
+		}
+		if (scalarType === "boolean" && typeof casted !== "boolean") {
+			error = `Expected booleans for key "${key}", got "${String(value)}"`;
+		}
+	}
+
+	if (!error) return { accepted: true, value: casted };
+	if (onTypeError === "throw") throw new TypeError(error);
+	if (onTypeError === "keep") return { accepted: true, value };
+	return { accepted: false };
+}
+
+function finalizeKey(
+	result: Record<string, any>,
 	key: string,
 	types: ParseOptions["types"],
-): any {
-	const t = types?.[key];
-	if (!t || !isArrayType(t)) return value;
-	return Array.isArray(value) ? value : [value];
+	parseNumber: boolean,
+	parseBoolean: boolean,
+	onTypeError: ValueTypeError,
+): void {
+	const current = result[key];
+	const explicitType = types?.[key];
+	if (explicitType && isArrayType(explicitType)) {
+		const values = Array.isArray(current) ? current : [current];
+		const next: unknown[] = [];
+
+		for (const value of values) {
+			const out = castExplicitTypedValue(value, key, explicitType, onTypeError);
+			if (out.accepted) next.push(out.value);
+		}
+
+		result[key] = next;
+		return;
+	}
+
+	if (explicitType && isScalarType(explicitType)) {
+		// For scalar explicit types, repeated params collapse to the last value.
+		const candidate = Array.isArray(current) ? current.at(-1) : current;
+		const out = castExplicitTypedValue(
+			candidate,
+			key,
+			explicitType,
+			onTypeError,
+		);
+		if (!out.accepted) {
+			delete result[key];
+			return;
+		}
+		result[key] = out.value;
+		return;
+	}
+
+	if (Array.isArray(current)) {
+		result[key] = current.map((item) =>
+			item === null ? null : castValue(String(item), parseNumber, parseBoolean),
+		);
+		return;
+	}
+
+	if (current !== null) {
+		result[key] = castValue(String(current), parseNumber, parseBoolean);
+	}
 }
 
 function splitCommaRaw(raw: string): string[] {
@@ -121,6 +191,24 @@ function pushValue(result: Record<string, any>, key: string, value: any): void {
 	result[key] = [existing, value];
 }
 
+function validateParseOptions(
+	array: ParseArrayFormat,
+	onTypeError: ValueTypeError,
+): void {
+	// Validate array
+	if (!ARRAY_FORMATS.includes(array.format)) {
+		throw new TypeError(
+			`Invalid array format: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
+		);
+	}
+	// Validate onTypeError
+	if (!TYPE_ERRORS.includes(onTypeError)) {
+		throw new TypeError(
+			`Invalid onTypeError: ${onTypeError}. Must be one of: ${TYPE_ERRORS.join(", ")}`,
+		);
+	}
+}
+
 /**
  * parse() with explicit branches per array.
  * - repeat: uses URLSearchParams for robust splitting of pairs
@@ -137,6 +225,7 @@ export function parse(
 		parseBoolean = false,
 		array = { format: "repeat" },
 		types,
+		onTypeError = "keep",
 	} = options;
 
 	/**
@@ -157,12 +246,7 @@ export function parse(
 	const cleaned = query.trim().replace(/^[?#&]/, "");
 	if (!cleaned) return result;
 
-	// Validate array
-	if (!ARRAY_FORMATS.includes(array.format)) {
-		throw new TypeError(
-			`Invalid array format: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
-		);
-	}
+	validateParseOptions(array, onTypeError);
 
 	// -----------------------
 	// Branch: format
@@ -188,25 +272,7 @@ export function parse(
 
 			// Post-process cast + enforce typed arrays
 			for (const key of Object.keys(result)) {
-				const current = result[key];
-
-				if (Array.isArray(current)) {
-					result[key] = current.map((item) =>
-						item === null
-							? null
-							: castValue(String(item), key, types, parseNumber, parseBoolean),
-					);
-				} else if (current !== null) {
-					result[key] = castValue(
-						String(current),
-						key,
-						types,
-						parseNumber,
-						parseBoolean,
-					);
-				}
-
-				result[key] = ensureArrayIfTyped(result[key], key, types);
+				finalizeKey(result, key, types, parseNumber, parseBoolean, onTypeError);
 			}
 			break;
 		}
@@ -274,26 +340,7 @@ export function parse(
 					result[key] = flat;
 				}
 
-				// Cast
-				const afterFlatten = result[key];
-				if (Array.isArray(afterFlatten)) {
-					result[key] = afterFlatten.map((item) =>
-						item === null
-							? null
-							: castValue(String(item), key, types, parseNumber, parseBoolean),
-					);
-				} else if (afterFlatten !== null) {
-					result[key] = castValue(
-						String(afterFlatten),
-						key,
-						types,
-						parseNumber,
-						parseBoolean,
-					);
-				}
-
-				// Enforce typed arrays
-				result[key] = ensureArrayIfTyped(result[key], key, types);
+				finalizeKey(result, key, types, parseNumber, parseBoolean, onTypeError);
 			}
 			break;
 		}

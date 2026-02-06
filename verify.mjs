@@ -26,7 +26,7 @@ run("bun run build");
 
 // 3) Smoke test dist outputs directly (Node ESM + CJS)
 run(
-	`node --input-type=module -e "import { parse, stringify } from './dist/index.js'; console.log(parse('a=1&b=2')); console.log(stringify({a:1}));"`,
+	`node --input-type=module -e "import { parse, stringify } from './dist/index.mjs'; console.log(parse('a=1&b=2')); console.log(stringify({a:1}));"`,
 );
 run(
 	`node -e "const { parse, stringify } = require('./dist/index.cjs'); console.log(parse('a=1&b=2')); console.log(stringify({a:1}));"`,

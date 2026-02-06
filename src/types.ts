@@ -17,12 +17,15 @@ export type ValueType =
 	| "string[]"
 	| "number[]";
 
+export type ValueTypeError = "keep" | "throw" | "drop";
+
 export type ParseOptions = {
 	decode?: boolean;
 	array?: ParseArrayFormat;
 	parseNumber?: boolean;
 	parseBoolean?: boolean;
 	types?: Record<string, ValueType>;
+	onTypeError?: ValueTypeError;
 };
 
 export type StringifyOptions = {

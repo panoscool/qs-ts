@@ -1,4 +1,4 @@
-import { strictUriEncode } from "./core";
+import { ARRAY_FORMATS, strictUriEncode } from "./core";
 import type { StringifyOptions } from "./types";
 
 function encodeText(text: string, encode: boolean): string {
@@ -40,6 +40,12 @@ export function stringify(
 		skipNull = false,
 		skipEmptyString = false,
 	} = options;
+
+	if (!ARRAY_FORMATS.includes(array.format)) {
+		throw new TypeError(
+			`Invalid array format: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
+		);
+	}
 
 	const parts: string[] = [];
 
@@ -95,9 +101,6 @@ export function stringify(
 				parts.push(`${encodeText(key, encode)}=${encodedItems.join(",")}`);
 				continue;
 			}
-
-			// If TypeScript ever allows other values, we still keep runtime safe:
-			continue;
 		}
 
 		// ---- scalar normal ----

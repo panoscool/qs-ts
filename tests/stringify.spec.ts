@@ -166,10 +166,10 @@ describe("stringify", () => {
 		});
 	});
 
-	test("unknown array format is ignored (runtime safe)", () => {
-		expect(
+	test("throws on invalid array format", () => {
+		expect(() =>
 			stringify({ a: ["x"] }, { array: { format: "unknown" as any } }),
-		).toBe("");
+		).toThrow(TypeError);
 	});
 
 	test("handles object values by converting to string", () => {

@@ -286,7 +286,116 @@ describe("parse", () => {
 			});
 		});
 
-		test("types override inferTypes for those keys", () => {
+		test("types: number[] keeps invalid values by default", () => {
+			expect(parse("ids", { types: { ids: "number[]" } })).toEqual({
+				ids: [null],
+			});
+		});
+
+		test("types: number[] keeps non-finite values by default", () => {
+			expect(parse("ids=1&ids=NaN", { types: { ids: "number[]" } })).toEqual({
+				ids: [1, "NaN"],
+			});
+		});
+
+		test("types: string[] keeps missing values by default", () => {
+			expect(parse("tags", { types: { tags: "string[]" } })).toEqual({
+				tags: [null],
+			});
+		});
+
+		test("types + onTypeError=throw throws on invalid typed array values", () => {
+			expect(() =>
+				parse("ids=1&ids=NaN", {
+					types: { ids: "number[]" },
+					onTypeError: "throw",
+				}),
+			).toThrow(TypeError);
+		});
+
+		test("types + onTypeError=drop drops invalid typed array values", () => {
+			expect(
+				parse("ids=1&ids=NaN&ids=2", {
+					types: { ids: "number[]" },
+					onTypeError: "drop",
+				}),
+			).toEqual({ ids: [1, 2] });
+		});
+
+		test("types + onTypeError=drop keeps empty typed array key", () => {
+			expect(
+				parse("ids=NaN", {
+					types: { ids: "number[]" },
+					onTypeError: "drop",
+				}),
+			).toEqual({ ids: [] });
+		});
+
+		test("types + onTypeError=throw throws for invalid scalar number", () => {
+			expect(() =>
+				parse("a=NaN", {
+					types: { a: "number" },
+					onTypeError: "throw",
+				}),
+			).toThrow(TypeError);
+		});
+
+		test("types + onTypeError=drop removes invalid scalar number key", () => {
+			expect(
+				parse("a=NaN&b=2", {
+					types: { a: "number", b: "number" },
+					onTypeError: "drop",
+				}),
+			).toEqual({ b: 2 });
+		});
+
+		test("types + onTypeError=drop removes invalid scalar boolean key", () => {
+			expect(
+				parse("flag=yes", {
+					types: { flag: "boolean" },
+					onTypeError: "drop",
+				}),
+			).toEqual({});
+		});
+
+		test("types + onTypeError=keep preserves invalid scalar boolean value", () => {
+			expect(
+				parse("flag=yes", {
+					types: { flag: "boolean" },
+					onTypeError: "keep",
+				}),
+			).toEqual({ flag: "yes" });
+		});
+
+		test("scalar typed keys with repeated params use last value", () => {
+			expect(parse("a=1&a=2", { types: { a: "number" } })).toEqual({ a: 2 });
+		});
+
+		test("scalar typed keys + onTypeError=throw validates repeated last value", () => {
+			expect(() =>
+				parse("a=1&a=NaN", {
+					types: { a: "number" },
+					onTypeError: "throw",
+				}),
+			).toThrow(TypeError);
+		});
+
+		test("scalar typed keys + onTypeError=drop can remove repeated key", () => {
+			expect(
+				parse("a=1&a=NaN", {
+					types: { a: "number" },
+					onTypeError: "drop",
+				}),
+			).toEqual({});
+		});
+
+		test("throws on invalid onTypeError value", () => {
+			expect(() => parse("a=1", { onTypeError: "invalid" as any })).toThrow(
+				TypeError,
+			);
+		});
+
+		test("types override global parse flags for those keys", () => {
 			const opts: ParseOptions = {
 				parseNumber: true,
 				types: { a: "string", b: "string", c: "number" },

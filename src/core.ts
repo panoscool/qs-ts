@@ -1,4 +1,5 @@
 export const ARRAY_FORMATS = ["repeat", "comma"];
+export const TYPE_ERRORS = ["keep", "throw", "drop"];
 
 export function splitOnFirst(
 	string: string,

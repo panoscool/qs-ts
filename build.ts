@@ -17,7 +17,7 @@ const esm = await build({
 	outdir: "./dist",
 	target: "node",
 	format: "esm",
-	naming: "[name].js",
+	naming: "[name].mjs",
 	minify: true,
 });
 assertBuild(esm, "ESM build");

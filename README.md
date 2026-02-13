@@ -58,21 +58,55 @@ Parses a query string into an object.
 
 #### Options
 
-- `decode?: boolean` (default: `true`) - Whether to decode percent-encoded characters
-- `parseNumber?: boolean` (default: `false`) - Attempt to parse numbers ("1", "12.5", "1e3" -> number).
-  - Uses `Number(val)`.
-  - Does NOT parse "Infinity", "NaN", or empty strings.
-- `parseBoolean?: boolean` (default: `false`) - Attempt to parse booleans.
-  - Only "true" and "false" (lowercase) are converted.
-- `array?: ParseArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are represented
-- `types?: Record<string, ValueType>` - Explicit type casting (takes priority over global flags)
-  - `ValueType` supports `"string" | "number" | "boolean" | "string[]" | "number[]"`
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `decode` | `boolean` | `true` | Decode percent-encoded characters. |
+| `parseNumber` | `boolean` | `false` | Parse numeric-looking values with `Number(...)`; does not parse `Infinity`, `NaN`, or empty strings. |
+| `parseBoolean` | `boolean` | `false` | Parse only lowercase `"true"` / `"false"` to booleans. |
+| `array` | `ParseArrayFormat` | `{ format: "repeat" }` | How arrays are represented in the query string. |
+| `types` | `Record<string, ValueType>` | `undefined` | Explicit per-key typing; takes priority over global parse flags. |
+| `onTypeError` | `ValueTypeError` | `"keep"` | Behavior when explicit `types` casting fails. |
 
-**ParseArrayFormat Definition:**
+&nbsp;
+
+`onTypeError` behavior with explicit `types`:
+
+| Mode | Invalid Scalar (`number`, `boolean`) | Invalid Array Item (`number[]`, `string[]`) |
+| --- | --- | --- |
+| `"keep"` | Keep original value | Keep original item |
+| `"throw"` | Throw `TypeError` | Throw `TypeError` |
+| `"drop"` | Remove the key | Drop invalid item |
+
+For scalar explicit types with repeated params (`a=1&a=2`), the **last value wins** before casting.
+
+&nbsp;
+
+**Parse Options Definition:**
+```typescript
+type ParseOptions = {
+	decode?: boolean;
+	array?: ParseArrayFormat;
+	parseNumber?: boolean;
+	parseBoolean?: boolean;
+	types?: Record<string, ValueType>;
+	onTypeError?: ValueTypeError;
+};
+```
 ```typescript
 type ParseArrayFormat =
   | { format: "repeat" }
   | { format: "comma"; encoded: "preserve" | "split" };
+```
+```typescript
+type ValueType =
+	| "string"
+	| "number"
+	| "boolean"
+	| "string[]"
+	| "number[]";
+```
+```typescript
+type ValueTypeError = "keep" | "throw" | "drop";
 ```
 
 > 
@@ -139,12 +173,24 @@ Serializes an object into a query string.
 
 #### Options
 
-- `encode?: boolean` (default: `true`) - Whether to encode special characters
-- `array?: StringifyArrayFormat` (default: `{ format: 'repeat' }`) - How arrays are serialized
-- `skipNull?: boolean` (default: `false`) - Whether to skip null values
-- `skipEmptyString?: boolean` (default: `false`) - Whether to skip empty strings
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `encode` | `boolean` | `true` | Encode special characters. |
+| `array` | `StringifyArrayFormat` | `{ format: "repeat" }` | How arrays are serialized. |
+| `skipNull` | `boolean` | `false` | Skip `null` values (or `null` array items). |
+| `skipEmptyString` | `boolean` | `false` | Skip empty-string values (or empty-string array items). |
 
-**StringifyArrayFormat Definition:**
+&nbsp;
+
+**Stringify Options Definition:**
+```typescript
+type StringifyOptions = {
+	encode?: boolean;
+	array?: StringifyArrayFormat;
+	skipNull?: boolean;
+	skipEmptyString?: boolean;
+};
+```
 ```typescript
 type StringifyArrayFormat =
   | { format: "repeat" }
@@ -228,7 +274,7 @@ console.log(parsed);
 ```typescript
 // Parse from URL with repeat format (default)
 const url2 = new URL('https://example.com/search?q=typescript&tags=web&tags=api&limit=10');
-// inferTypes is gone, use specific flags if needed
+// Use explicit global parse flags as needed
 const params2 = parse(url2.search.slice(1), { parseNumber: true, array: { format: 'repeat' } });
 console.log(params2);
 // { q: 'typescript', tags: ['web', 'api'], limit: 10 }
@@ -271,4 +317,4 @@ bun verify.mjs
 
 ## License
 
-MIT - see [LICENSE](LICENSE)</content>
+MIT - see [LICENSE](LICENSE)

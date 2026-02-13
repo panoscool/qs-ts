@@ -1,9 +1,5 @@
-import { strictUriEncode } from "./core";
+import { encodeText, validateArrayFormat } from "./core";
 import type { StringifyOptions } from "./types";
-
-function encodeText(text: string, encode: boolean): string {
-	return encode ? strictUriEncode(text) : text;
-}
 
 function encodeValue(
 	value: string | number | boolean,
@@ -40,6 +36,8 @@ export function stringify(
 		skipNull = false,
 		skipEmptyString = false,
 	} = options;
+
+	validateArrayFormat(array.format);
 
 	const parts: string[] = [];
 
@@ -95,9 +93,6 @@ export function stringify(
 				parts.push(`${encodeText(key, encode)}=${encodedItems.join(",")}`);
 				continue;
 			}
-
-			// If TypeScript ever allows other values, we still keep runtime safe:
-			continue;
 		}
 
 		// ---- scalar normal ----

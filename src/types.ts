@@ -17,7 +17,7 @@ export type ValueType =
 	| "string[]"
 	| "number[]";
 
-export type ValueTypeError = "keep" | "throw" | "drop";
+export type ValueTypeError = "keep" | "drop" | "throw";
 
 export type ParseOptions = {
 	decode?: boolean;

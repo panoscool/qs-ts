@@ -39,3 +39,34 @@ export function strictUriEncode(text: string): string {
 		(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
 	);
 }
+
+export function decodeText(text: string, decode: boolean): string {
+	return decode ? safeDecodeURIComponent(text) : text;
+}
+
+export function encodeText(text: string, encode: boolean): string {
+	return encode ? strictUriEncode(text) : text;
+}
+
+export function splitCommaRaw(raw: string): string[] {
+	return raw
+		.split(",")
+		.map((part) => part.trim())
+		.filter((part) => part.length > 0);
+}
+
+export function validateArrayFormat(arrayFormat: string): void {
+	if (!ARRAY_FORMATS.includes(arrayFormat)) {
+		throw new TypeError(
+			`Invalid array format: ${arrayFormat}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
+		);
+	}
+}
+
+export function validateOnTypeError(onTypeError: string): void {
+	if (!TYPE_ERRORS.includes(onTypeError)) {
+		throw new TypeError(
+			`Invalid onTypeError: ${onTypeError}. Must be one of: ${TYPE_ERRORS.join(", ")}`,
+		);
+	}
+}

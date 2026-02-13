@@ -1,18 +1,16 @@
-import { ARRAY_FORMATS, safeDecodeURIComponent, TYPE_ERRORS } from "./core";
+import {
+	decodeText,
+	splitCommaRaw,
+	splitOnFirst,
+	validateArrayFormat,
+	validateOnTypeError,
+} from "./core";
 import type {
 	ParseArrayFormat,
 	ParseOptions,
 	ValueType,
 	ValueTypeError,
 } from "./types";
-
-/**
- * Decode helper that respects options.decode.
- * Also handles "+" => " " via safeDecodeURIComponent.
- */
-function decodeText(text: string, decode: boolean): string {
-	return decode ? safeDecodeURIComponent(text) : text;
-}
 
 function isArrayType(t: ValueType): t is "string[]" | "number[]" {
 	return t === "string[]" || t === "number[]";
@@ -162,14 +160,6 @@ function finalizeKey(
 	}
 }
 
-function splitCommaRaw(raw: string): string[] {
-	// split raw, trim, drop empty segments
-	return raw
-		.split(",")
-		.map((s) => s.trim())
-		.filter((s) => s.length > 0);
-}
-
 /**
  * Accumulate into result:
  * - first assignment => scalar
@@ -195,18 +185,8 @@ function validateParseOptions(
 	array: ParseArrayFormat,
 	onTypeError: ValueTypeError,
 ): void {
-	// Validate array
-	if (!ARRAY_FORMATS.includes(array.format)) {
-		throw new TypeError(
-			`Invalid array format: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
-		);
-	}
-	// Validate onTypeError
-	if (!TYPE_ERRORS.includes(onTypeError)) {
-		throw new TypeError(
-			`Invalid onTypeError: ${onTypeError}. Must be one of: ${TYPE_ERRORS.join(", ")}`,
-		);
-	}
+	validateArrayFormat(array.format);
+	validateOnTypeError(onTypeError);
 }
 
 /**
@@ -256,9 +236,7 @@ export function parse(
 			for (const part of cleaned.split("&")) {
 				if (!part) continue;
 
-				const eq = part.indexOf("=");
-				const rawKey = eq === -1 ? part : part.slice(0, eq);
-				const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
+				const [rawKey, rawVal] = splitOnFirst(part, "=");
 
 				const key = decodeText(rawKey, decode);
 				if (rawVal === undefined) {
@@ -284,9 +262,7 @@ export function parse(
 			for (const part of cleaned.split("&")) {
 				if (!part) continue;
 
-				const eq = part.indexOf("=");
-				const rawKey = eq === -1 ? part : part.slice(0, eq);
-				const rawVal = eq === -1 ? undefined : part.slice(eq + 1);
+				const [rawKey, rawVal] = splitOnFirst(part, "=");
 
 				const key = decodeText(rawKey, decode);
 

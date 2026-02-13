@@ -1,9 +1,5 @@
-import { ARRAY_FORMATS, strictUriEncode } from "./core";
+import { encodeText, validateArrayFormat } from "./core";
 import type { StringifyOptions } from "./types";
-
-function encodeText(text: string, encode: boolean): string {
-	return encode ? strictUriEncode(text) : text;
-}
 
 function encodeValue(
 	value: string | number | boolean,
@@ -41,11 +37,7 @@ export function stringify(
 		skipEmptyString = false,
 	} = options;
 
-	if (!ARRAY_FORMATS.includes(array.format)) {
-		throw new TypeError(
-			`Invalid array format: ${array.format}. Must be one of: ${ARRAY_FORMATS.join(", ")}`,
-		);
-	}
+	validateArrayFormat(array.format);
 
 	const parts: string[] = [];
 

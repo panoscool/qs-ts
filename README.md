@@ -19,7 +19,6 @@ npm install qs-ts
 bun add qs-ts
 ```
 
-> 
 > 💡 Consider using the native browser API `URLSearchParams` for simple use cases.
 
 ## Usage
@@ -69,18 +68,6 @@ Parses a query string into an object.
 
 &nbsp;
 
-`onTypeError` behavior with explicit `types`:
-
-| Mode | Invalid Scalar (`number`, `boolean`) | Invalid Array Item (`number[]`, `string[]`) |
-| --- | --- | --- |
-| `"keep"` | Keep original value | Keep original item |
-| `"throw"` | Throw `TypeError` | Throw `TypeError` |
-| `"drop"` | Remove the key | Drop invalid item |
-
-For scalar explicit types with repeated params (`a=1&a=2`), the **last value wins** before casting.
-
-&nbsp;
-
 **Parse Options Definition:**
 ```typescript
 type ParseOptions = {
@@ -97,6 +84,14 @@ type ParseArrayFormat =
   | { format: "repeat" }
   | { format: "comma"; encoded: "preserve" | "split" };
 ```
+
+`array` behavior for comma format:
+
+> ⚠️ Comma separated arrays depend on delimiter consistency. If values may be URL encoded or come from external sources, **repeat is safer and more predictable**.
+
+- `encoded: "preserve"` splits on literal `,` only; `%2C` is treated as data.
+- `encoded: "split"` splits on literal `,` and on `%2C`/`%2c` so results don’t depend on upstream encoding.
+
 ```typescript
 type ValueType =
 	| "string"
@@ -109,11 +104,11 @@ type ValueType =
 type ValueTypeError = "keep" | "throw" | "drop";
 ```
 
-> 
-> ⚠️ Comma separated arrays depend on delimiter consistency. If values may be URL encoded or come from external sources, **repeat is safer and more predictable**.
+`onTypeError` behavior with explicit `types`:
 
-- `encoded: "preserve"` splits on literal `,` only; `%2C` is treated as data.
-- `encoded: "split"` splits on literal `,` and on `%2C`/`%2c` so results don’t depend on upstream encoding.
+- `"keep"`: keep the invalid value (for arrays, keep the invalid item).
+- `"drop"`: remove the invalid value (for arrays, drop the invalid item).
+- `"throw"`: throw `TypeError`.
 
 #### Examples
 
@@ -146,6 +141,7 @@ parse('tags=a,b%2Cc', { array: { format: 'comma', encoded: 'split' } });
 ##### Explicit Types
 
 Explicit types take priority over global `parseNumber`/`parseBoolean` flags.
+For scalar explicit types with repeated params (`a=1&a=2`), the **last value wins** before casting.
 
 ```typescript
 parse('count=5&flags=on&items=a&items=b', {

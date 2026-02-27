@@ -482,6 +482,18 @@ describe("parse", () => {
 	});
 
 	describe("Priority Rules", () => {
+		test("comma format respects explicit scalar vs array types per key", () => {
+			expect(
+				parse("search=hello,world&tags=hi,there", {
+					array: { format: "comma", encoded: "split" },
+					types: { search: "string", tags: "string[]" },
+				}),
+			).toEqual({
+				search: "hello,world",
+				tags: ["hi", "there"],
+			});
+		});
+
 		test("types[key] wins over parseNumber", () => {
 			// Explicitly string, even though it looks like a number and parseNumber is true
 			expect(

@@ -140,8 +140,10 @@ parse('tags=a,b%2Cc', { array: { format: 'comma', encoded: 'split' } });
 
 ##### Explicit Types
 
-Explicit types take priority over global `parseNumber`/`parseBoolean` flags.
-For scalar explicit types with repeated params (`a=1&a=2`), the **last value wins** before casting.
+Explicit types take priority over all global parse rules (`array`, `parseNumber`, `parseBoolean`) on a per-key basis.
+If a key has an explicit scalar type (`string`, `number`, `boolean`), it is treated as scalar for that key (for repeated params, the **last value wins** before casting).
+If a key has an explicit array type (`string[]`, `number[]`), array behavior applies for that key.
+If a key has no explicit type, global rules apply.
 
 ```typescript
 parse('count=5&flags=on&items=a&items=b', {

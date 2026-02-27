@@ -265,9 +265,18 @@ export function parse(
 				const [rawKey, rawVal] = splitOnFirst(part, "=");
 
 				const key = decodeText(rawKey, decode);
+				const explicitType = types?.[key];
 
 				if (rawVal === undefined) {
 					pushValue(result, key, null);
+					continue;
+				}
+
+				if (explicitType && isScalarType(explicitType)) {
+					// Explicit scalar types are authoritative; keep the raw value
+					// for this key and let finalizeKey() cast it later.
+					const val = decodeText(rawVal, decode);
+					pushValue(result, key, val);
 					continue;
 				}
 

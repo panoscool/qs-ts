@@ -33,16 +33,8 @@ jobs:
 
   osv-scan:
     name: OSV scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.3
     permissions:
       actions: read
       contents: read
       security-events: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: osv-scanner
-        uses: google/osv-scanner-action@v2.3.3

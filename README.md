@@ -1,22 +1,20 @@
 # qs-ts
 
-A TypeScript library for parsing and stringifying URL query strings, inspired by the popular 'query-string' library. It provides robust handling of arrays, type inference, and encoding options.
+A focused TypeScript library for parsing and stringifying URL query strings with predictable behavior, explicit typing controls, and practical defaults.
 
 ## Features
 
-- **Type Inference**: Flexible options to parse numbers (`parseNumber`) and booleans (`parseBoolean`)
-- **Array Formats**: Support for `repeat` (key=a&key=b) and `comma` (key=a,b), plus configurable comma parsing
-- **Flexible Options**: Configurable encoding/decoding, null handling, array formatting
-- **TypeScript Support**: Full type definitions included
-- **Safe Parsing**: Handles malformed encodings gracefully
-- **Dual Package**: ESM and CommonJS support
+- **Predictable Parsing**: Explicit control over numbers, booleans, arrays, and per-key types so query values resolve the way you expect
+- **Practical Array Handling**: Built-in support for repeated keys and comma-separated values, including configurable handling for encoded commas
+- **Built for Typed Codebases**: First-class TypeScript definitions with typed parse options and value casting
+- **Safe by Default**: Gracefully handles malformed encodings and avoids surprising coercion
+- **Flexible Serialization**: Configure encoding, null behavior, empty strings, and array output to match your API
+- **Ready Everywhere**: Works in both ESM and CommonJS environments
 
 ## Installation
 
 ```bash
 npm install qs-ts
-# or
-bun add qs-ts
 ```
 
 > 💡 Consider using the native browser API `URLSearchParams` for simple use cases.
